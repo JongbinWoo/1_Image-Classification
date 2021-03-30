@@ -10,7 +10,7 @@ from data_loader.dataset import MaskDataset, get_augmentation
 from config import get_config
 
 #model
-from model.model import MLP
+from model.model import VGG
 from model import loss
 from model.optimizer import get_optimizer 
 
@@ -26,7 +26,7 @@ def main(config):
     # DATA SETTING
     transform = get_augmentation(**config.TRAIN.AUGMENTATION)
     
-    dataset = MaskDataset(config.DATASET.ROOT, transform=transform)
+    dataset = MaskDataset(config.PATH.ROOT, transform=transform)
     
     len_valid_set = int(config.DATASET.RATIO * len(dataset))
     len_train_set = len(dataset) - len_valid_set
@@ -40,26 +40,30 @@ def main(config):
                               num_workers=config.TRAIN.NUM_WORKERS, shuffle=True)
 
     # MODEL
-    mlp = MLP(input_features=784, hidden_size=256, output_features=config.DATASET.NUM_CLASSES)
-    print('[Model Info]\n\n', mlp)
+    model = VGG(config.DATASET.NUM_CLASSES)
+    print('[Model Info]\n\n', model)
     optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
                               lr=config.TRAIN.BASE_LR, 
-                              model=mlp)
+                              model=model)
+    import torch.optim as optim
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
+
     import torch.nn as nn        ##
     loss = nn.CrossEntropyLoss() ##
     
-    trainer = Trainer(mlp, optimizer, loss,  config, train_loader, valid_loader)
+    trainer = Trainer(model, optimizer, scheduler, loss,  config, train_loader, valid_loader)
     trainer.train()
     
 # %%
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='MLP')
-    parser.add_argument('--epochs', default=10, type=int)
-    parser.add_argument('--batch_size', default=256, type=int)
-    parser.add_argument('--lr', default=0.001, type=float)
+    # parser = argparse.ArgumentParser(description='MLP')
+    # parser.add_argument('--epochs', default=10, type=int)
+    # parser.add_argument('--batch_size', default=256, type=int)
+    # parser.add_argument('--lr', default=0.001, type=float)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    config = get_config(args)
+    config = get_config()
 
     main(config)
+# %%

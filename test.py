@@ -1,38 +1,85 @@
 #%%
+from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-import argparse
+from tqdm import tqdm
+import pandas as pd
+import os
+from torch.utils.data.dataloader import DataLoader
 
-#data
-from data_loader.data_loader import get_loader
-from data_loader.dataset import get_mnist, get_augmentation
+from torch.utils.data.dataset import Dataset
+from torchvision import transforms
+from torchvision.transforms import ToTensor, CenterCrop
+
 
 #config
 from config import get_config
 
 #model
-from model.model import MLP
-from model import loss
-from model.optimizer import get_optimizer 
+from model.model import VGG
+
 
 SEED = 42
 torch.manual_seed(SEED)
+#%%
+class TestDataset(Dataset):
+    def __init__(self, img_paths, transform):
+        self.img_paths = img_paths
+        self.transform = transform
 
+    def __getitem__(self, index):
+        image = Image.open(self.img_paths[index])
+
+        if self.transform:
+            image = self.transform(image)
+        return image
+
+    def __len__(self):
+        return len(self.img_paths)
 # %%
 def main(config):
-    transform = get_augmentation(**config.TRAIN.AUGMENTATION)
-    _, test_dataset = get_mnist(config.PATH.ROOT, transform=transform)
+    test_dir = '/opt/ml/input/data/eval'
+    # meta 데이터와 이미지 경로를 불러옵니다.
+    submission = pd.read_csv(os.path.join(test_dir, 'info.csv'))
+    image_dir = os.path.join(test_dir, 'images')
+    image_paths = [os.path.join(image_dir, img_id) for img_id in submission.ImageID]
+
+    transform = transforms.Compose([
+        CenterCrop(224),
+        ToTensor()
+    ])
+    dataset = TestDataset(image_paths, transform)
+
+    loader = DataLoader(
+        dataset,
+        shuffle=False
+    )
+
+    model = VGG(config.DATASET.NUM_CLASSES)
+    checkpoint = torch.load(config.PATH.RESUME)
+    model.load_state_dict(checkpoint['model_state_dict'])
+
+    model.to(config.SYSTEM.DEVICE)
+    model.eval()
+
+    print('test inference start!')
+
+    all_predictions = []
+    for images in tqdm(loader):
+        with torch.no_grad():
+            images = images.to(config.SYSTEM.DEVICE)
+            pred = model(images)
+            # pred = pred.argmax(dim=-1)
+            pred = [p.argmax(dim=-1).cpu().numpy() for p in pred]
+            all_predictions.extend(pred[0]*3 + pred[1] + pred[2] *6)
+    submission['ans'] = all_predictions
+
+    # 제출할 파일을 저장합니다.
+    submission.to_csv(os.path.join(test_dir, 'submission.csv'), index=False)
+    print('test inference is done!')
 
 
-    test_loader = get_loader(test_dataset, batch_size=config.TRAIN.BATCH_SIZE, shuffle=True)
-    
-    mlp = MLP(input_features=784, hidden_size=256, output_features=config.DATASET.NUM_CLASSES)
-    checkpoint = torch.load(config.PATH.CHECKPOINT)
-    state_dict = checkpoint['state_dict']
-    mlp.load_state_dict(state_dict)
-    mlp.to(config.DEVICE)
-    mlp.eval()
 
 def test_visualization(model, test_loader, config):
     mnist_test = test_loader.dataset()
@@ -58,13 +105,13 @@ def test_visualization(model, test_loader, config):
     
 # %%
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='MLP')
-    parser.add_argument('--r', default=None, type=str,
-                        help='Path to checkpoint')
-    parser.add_argument('--batch_size', default=256, type=int)
+    # parser = argparse.ArgumentParser(description='MLP')
+    # parser.add_argument('--r', default=None, type=str,
+    #                     help='Path to checkpoint')
+    # parser.add_argument('--batch_size', default=256, type=int)
 
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    config = get_config(args)
+    config = get_config()
 
     main(config)
