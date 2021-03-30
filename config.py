@@ -30,6 +30,7 @@ def get_config(args):
                                  
     # config.TRAIN.EPOCH = args.epochs
     config.TRAIN.BATCH_SIZE = args.batch_size
+    config.TRAIN.NUM_WORKERS = 4
     # config.TRAIN.BASE_LR = args.lr 
     config.TRAIN.PERIOD = 3
 

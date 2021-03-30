@@ -24,7 +24,7 @@ class MaskDataset(Dataset):
     def __getitem__(self, index):
         folder_idx, img_idx = divmod(index, 7)
         folder_path = self.folder_list[folder_idx]
-        folder_path = os.path.join(data_root, folder_path)
+        folder_path = os.path.join(self.data_root, folder_path)
         
         img_list = glob(os.path.join(folder_path, '*.jpg'))
         img_list = list(map(os.path.basename, img_list))
@@ -61,31 +61,3 @@ class MaskDataset(Dataset):
         idx_data =  self.info_df.iloc[idx]
         return idx_data.gender, idx_data.age_class
      
-# %%
-data_root = '/opt/ml/input/data/train/images'
-
-train_dataset = MaskDataset(data_root, transform=transforms.ToTensor())
-
-# %%
-len(train_dataset)
-
-# %%
-import matplotlib.pyplot as plt
-
-fig, axes = plt.subplots(len(train_dataset), 7)
-for j, folder_name in enumerate((train_dataset.folder_list)):
-    folder_path = os.path.join(data_root, folder_name)
-    
-    img_path_list = glob(os.path.join(folder_path, '*.jpg'))
-    img_list = list(map(os.path.basename, img_path_list))
-
-    for i in range(len(img_path_list)):
-        
-        img = train_dataset[j*7+i][0].detach().cpu().numpy()
-        # print(len(img))
-        img = img.transpose(1, 2, 0)
-        axes[j, i].imshow(img)
-        axes[j, i].axis('off')
-        axes[j, i].title(img_list[i])
-    
-# %%

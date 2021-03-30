@@ -85,3 +85,27 @@ def png2jpg(root, folder_names):
 png2jpg(data_root, folder_names)
 
 #%%
+from data_loader.dataset import MaskDataset
+import matplotlib.pyplot as plt
+
+def visualize_all_images(dataset):
+    """
+    subplot으로 했을떄 에러가 나서 수정중....
+    """
+    fig, axes = plt.subplots(len(dataset), 7)
+    for j, folder_name in enumerate((dataset.folder_list)):
+        folder_path = os.path.join(data_root, folder_name)
+        
+        img_path_list = glob(os.path.join(folder_path, '*.jpg'))
+        img_list = list(map(os.path.basename, img_path_list))
+
+        for i in range(len(img_path_list)):
+            
+            img = dataset[j*7+i][0].detach().cpu().numpy()
+            # print(len(img))
+            img = img.transpose(1, 2, 0)
+            axes[j, i].imshow(img)
+            axes[j, i].axis('off')
+            axes[j, i].title(img_list[i])
+
+train_dataset = MaskDataset(data_root)   
