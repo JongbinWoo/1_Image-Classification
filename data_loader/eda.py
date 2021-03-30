@@ -27,6 +27,13 @@ def _get_age_class(age):
 
 train_df['age_class'] = train_df.apply(lambda x: _get_age_class(x['age']), axis=1)
 
+#%%
+def concat_gender_age(gender, age):
+    return gender * 3 + age
+
+train_df['gender_age_class'] = train_df.apply(lambda x: concat_gender_age(x['gender'], x['age_class']), axis=1)
+
+
 train_df.to_csv('/opt/ml/input/data/train/train.csv')
 # %%
 # Plot
@@ -54,58 +61,58 @@ folder_names = train_df.path.values
 data_root = '/opt/ml/input/data/train/images'
 
 # %%
-def check_num_files(root, folder_names):
-    for folder_name in folder_names:
-        path = os.path.join(root, folder_name)
-        img_list = glob(os.path.join(path, '*.jpg'))
-        img_list = list(map(os.path.basename, img_list))
+# def check_num_files(root, folder_names):
+#     for folder_name in folder_names:
+#         path = os.path.join(root, folder_name)
+#         img_list = glob(os.path.join(path, '*.jpg'))
+#         img_list = list(map(os.path.basename, img_list))
 
-        if len(img_list) != 7:
-            print(img_list)
-# %%
-check_num_files(data_root, folder_names)
-# %%
-from PIL import Image
+#         if len(img_list) != 7:
+#             print(img_list)
+# # %%
+# check_num_files(data_root, folder_names)
+# # %%
+# from PIL import Image
 
-def png2jpg(root, folder_names):
-    """
-    png -> jpg, jpeg -> jpg
-    """
-    for folder_name in folder_names:
-        path = os.path.join(root, folder_name)
-        img_list = glob(os.path.join(path, '*.jpeg'))
-        # img_list = list(map(os.path.basename, img_list))
+# def png2jpg(root, folder_names):
+#     """
+#     png -> jpg, jpeg -> jpg
+#     """
+#     for folder_name in folder_names:
+#         path = os.path.join(root, folder_name)
+#         img_list = glob(os.path.join(path, '*.jpeg'))
+#         # img_list = list(map(os.path.basename, img_list))
 
-        for img_path in img_list:
-            # print(img_path)
-            img = Image.open(img_path)
-            new_path = img_path[:-5]+'.jpg'
-            img.save(new_path)
+#         for img_path in img_list:
+#             # print(img_path)
+#             img = Image.open(img_path)
+#             new_path = img_path[:-5]+'.jpg'
+#             img.save(new_path)
 
-png2jpg(data_root, folder_names)
+# png2jpg(data_root, folder_names)
 
-#%%
-from data_loader.dataset import MaskDataset
-import matplotlib.pyplot as plt
+# #%%
+# from data_loader.dataset import MaskDataset
+# import matplotlib.pyplot as plt
 
-def visualize_all_images(dataset):
-    """
-    subplot으로 했을떄 에러가 나서 수정중....
-    """
-    fig, axes = plt.subplots(len(dataset), 7)
-    for j, folder_name in enumerate((dataset.folder_list)):
-        folder_path = os.path.join(data_root, folder_name)
+# def visualize_all_images(dataset):
+#     """
+#     subplot으로 했을떄 에러가 나서 수정중....
+#     """
+#     fig, axes = plt.subplots(len(dataset), 7)
+#     for j, folder_name in enumerate((dataset.folder_list)):
+#         folder_path = os.path.join(data_root, folder_name)
         
-        img_path_list = glob(os.path.join(folder_path, '*.jpg'))
-        img_list = list(map(os.path.basename, img_path_list))
+#         img_path_list = glob(os.path.join(folder_path, '*.jpg'))
+#         img_list = list(map(os.path.basename, img_path_list))
 
-        for i in range(len(img_path_list)):
+#         for i in range(len(img_path_list)):
             
-            img = dataset[j*7+i][0].detach().cpu().numpy()
-            # print(len(img))
-            img = img.transpose(1, 2, 0)
-            axes[j, i].imshow(img)
-            axes[j, i].axis('off')
-            axes[j, i].title(img_list[i])
+#             img = dataset[j*7+i][0].detach().cpu().numpy()
+#             # print(len(img))
+#             img = img.transpose(1, 2, 0)
+#             axes[j, i].imshow(img)
+#             axes[j, i].axis('off')
+#             axes[j, i].title(img_list[i])
 
-train_dataset = MaskDataset(data_root)   
+# train_dataset = MaskDataset(data_root)   
