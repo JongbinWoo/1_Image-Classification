@@ -60,7 +60,7 @@ class Trainer:
 
         print(f'[GENDER][TRAIN] Loss: {train_loss[0]/(batch_idx+1):.3f} | Acc: {100.*correct[0]/total:.3f}')
         print(f'[AGE][TRAIN] Loss: {train_loss[1]/(batch_idx+1):.3f} | Acc: {100.*correct[1]/total:.3f}')
-        print(f'[GENDER][TRAIN] Loss: {train_loss[2]/(batch_idx+1):.3f} | Acc: {100.*correct[2]/total:.3f}')
+        print(f'[MASK][TRAIN] Loss: {train_loss[2]/(batch_idx+1):.3f} | Acc: {100.*correct[2]/total:.3f}')
     
     def _vaild_epoch(self, epoch):
         self.model.eval()
@@ -97,7 +97,7 @@ class Trainer:
 
             print(f'[GENDER][VALIDATION] Loss: {val_loss[0]/(batch_idx+1):.3f} | Acc: {100.*correct[0]/total:.3f}')
             print(f'[AGE][VALIDATION] Loss: {val_loss[1]/(batch_idx+1):.3f} | Acc: {100.*correct[1]/total:.3f}')
-            print(f'[GENDER][VALIDATION] Loss: {val_loss[2]/(batch_idx+1):.3f} | Acc: {100.*correct[2]/total:.3f}')
+            print(f'[MASK][VALIDATION] Loss: {val_loss[2]/(batch_idx+1):.3f} | Acc: {100.*correct[2]/total:.3f}')
         
             self.scheduler.step(float(val_loss[1]))
 
@@ -105,7 +105,7 @@ class Trainer:
         print(f'Saveing checkpoint {self.save_path}..')
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
-        file_name = f'DENSE2_{epoch}'
+        file_name = f'DENSE5_{epoch}'
         file_path = os.path.join(self.save_path, file_name)
         torch.save({
             'epoch': epoch,

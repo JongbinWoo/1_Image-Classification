@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from torchvision.transforms.transforms import Normalize
 from tqdm import tqdm
 import pandas as pd
 import os
@@ -47,7 +48,8 @@ def main(config):
 
     transform = transforms.Compose([
         CenterCrop(224),
-        ToTensor()
+        ToTensor(),
+        Normalize((0.560, 0.524, 0.501), (0.233, 0.243, 0.245))
     ])
     dataset = TestDataset(image_paths, transform)
 

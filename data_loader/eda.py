@@ -1,6 +1,6 @@
 #%%
 import matplotlib.pyplot as plt 
-import seaborn as sns
+# import seaborn as sns
 import pandas as pd
 
 import os
@@ -61,35 +61,35 @@ folder_names = train_df.path.values
 data_root = '/opt/ml/input/data/train/images'
 
 # %%
-# def check_num_files(root, folder_names):
-#     for folder_name in folder_names:
-#         path = os.path.join(root, folder_name)
-#         img_list = glob(os.path.join(path, '*.jpg'))
-#         img_list = list(map(os.path.basename, img_list))
+def check_num_files(root, folder_names):
+    for folder_name in folder_names:
+        path = os.path.join(root, folder_name)
+        img_list = glob(os.path.join(path, '*.jpg'))
+        img_list = list(map(os.path.basename, img_list))
 
-#         if len(img_list) != 7:
-#             print(img_list)
-# # %%
-# check_num_files(data_root, folder_names)
-# # %%
-# from PIL import Image
+        if len(img_list) != 7:
+            print(img_list)
+# %%
+check_num_files(data_root, folder_names)
+#%%
+from PIL import Image
 
-# def png2jpg(root, folder_names):
-#     """
-#     png -> jpg, jpeg -> jpg
-#     """
-#     for folder_name in folder_names:
-#         path = os.path.join(root, folder_name)
-#         img_list = glob(os.path.join(path, '*.jpeg'))
-#         # img_list = list(map(os.path.basename, img_list))
+def png2jpg(root, folder_names):
+    """
+    png -> jpg, jpeg -> jpg
+    """
+    for folder_name in folder_names:
+        path = os.path.join(root, folder_name)
+        img_list = glob(os.path.join(path, '*.png')) # .jpeg
+        # img_list = list(map(os.path.basename, img_list))
 
-#         for img_path in img_list:
-#             # print(img_path)
-#             img = Image.open(img_path)
-#             new_path = img_path[:-5]+'.jpg'
-#             img.save(new_path)
+        for img_path in img_list:
+            # print(img_path)
+            img = Image.open(img_path)
+            new_path = img_path[:-4]+'.jpg' # 5
+            img.save(new_path)
 
-# png2jpg(data_root, folder_names)
+png2jpg(data_root, folder_names)
 
 # #%%
 # from data_loader.dataset import MaskDataset
@@ -116,3 +116,4 @@ data_root = '/opt/ml/input/data/train/images'
 #             axes[j, i].title(img_list[i])
 
 # train_dataset = MaskDataset(data_root)   
+# %%

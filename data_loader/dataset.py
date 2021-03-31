@@ -20,7 +20,7 @@ class MaskDataset(Dataset):
         self.len = len(self.folder_list) * 7
         self.data_root = data_root
 
-        self.transform = True
+        self.transform = transform
                
 
     def __getitem__(self, index):
@@ -48,9 +48,7 @@ class MaskDataset(Dataset):
         img = Image.open(img_path)
         # img = img/255.
         if self.transform:
-            # img = self.transform(img)
-            img = transforms.CenterCrop(224)(img)
-            img = transforms.ToTensor()(img)
+            img = self.transform(img)
         
         
         return img, [gender, age, mask]
@@ -74,7 +72,7 @@ def get_augmentation(size=224, use_flip=True, use_color_jitter=False, use_gray_s
     ], p=0.8)
     
     gray_scale = transforms.RandomGrayscale(p=0.2)
-    normalize = transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+    normalize = transforms.Normalize((0.560, 0.524, 0.501), (0.233, 0.243, 0.245))
     to_tensor = transforms.ToTensor()
     
     transforms_array = np.array([resize_crop, random_flip, color_jitter, gray_scale, to_tensor, normalize])
@@ -83,7 +81,8 @@ def get_augmentation(size=224, use_flip=True, use_color_jitter=False, use_gray_s
     # transform = transforms.Compose(transforms_array[transforms_mask])
     transform = transforms.Compose([
         transforms.CenterCrop(224),
-        to_tensor
+        to_tensor,
+        normalize
     ])
     
     return transform

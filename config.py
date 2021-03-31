@@ -19,10 +19,10 @@ def get_config():
     config.PATH.SAVEDIR = './checkpoint'
     # config.PATH.CHECKPOINT = args.r
     config.PATH.ROOT = '/opt/ml/input/data/train/images'
-    config.PATH.RESUME = '/opt/ml/code/checkpoint/DENSE2_6'
+    config.PATH.RESUME = '/opt/ml/code/checkpoint/DENSE5_3'
 
     config.DATASET.NUM_CLASSES = [2, 3, 3]
-    config.DATASET.RATIO = 0.3
+    config.DATASET.RATIO = 0.15
 
     config.TRAIN.AUGMENTATION = {'size': 28,
                                  'use_flip': False,
@@ -33,7 +33,7 @@ def get_config():
     config.TRAIN.BATCH_SIZE = 128 #args.batch_size
     config.TRAIN.NUM_WORKERS = 4
     config.TRAIN.BASE_LR = 0.0001 #args.lr 
-    config.TRAIN.PERIOD = 3
+    config.TRAIN.PERIOD = 1
 
     config.MODEL.OPTIM = 'Adam'
     config.MODEL.HIDDEN = [32, 64, 128]

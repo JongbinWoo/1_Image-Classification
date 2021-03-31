@@ -55,11 +55,10 @@ def main(config):
     train_indices = set(range(len(dataset.info_df))) - valid_indices
 
     def return_image_indices(i):
-        return i, i*2, i*3, i*4, i*5, i*6, i*7
+        return i*7, i*7+1, i*7+2, i*7+3, i*7+4, i*7+5, i*7+6
 
     train_indices = [x for i in train_indices for x in return_image_indices(i)]
     valid_indices = [x for i in valid_indices for x in return_image_indices(i)]
-
     train_sampler = SubsetRandomSampler(train_indices)
     valid_sampler = SubsetRandomSampler(valid_indices)
 
@@ -70,7 +69,7 @@ def main(config):
                                 num_workers=config.TRAIN.NUM_WORKERS, sampler=valid_sampler)
     # MODEL
     model = VGG(config.DATASET.NUM_CLASSES)
-    print('[Model Info]\n\n', model)
+    # print('[Model Info]\n\n', model)
     optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
                               lr=config.TRAIN.BASE_LR, 
                               model=model)
