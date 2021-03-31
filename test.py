@@ -18,7 +18,7 @@ from torchvision.transforms import ToTensor, CenterCrop
 from config import get_config
 
 #model
-from model.model import VGG
+from model.model import DenseNet, EfficientNet_b0
 
 
 SEED = 42
@@ -58,7 +58,7 @@ def main(config):
         shuffle=False
     )
 
-    model = VGG(config.DATASET.NUM_CLASSES)
+    model = EfficientNet_b0(config.DATASET.NUM_CLASSES, 512)
     checkpoint = torch.load(config.PATH.RESUME)
     model.load_state_dict(checkpoint['model_state_dict'])
 

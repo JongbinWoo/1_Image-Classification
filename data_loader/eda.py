@@ -116,4 +116,3 @@ png2jpg(data_root, folder_names)
 #             axes[j, i].title(img_list[i])
 
 # train_dataset = MaskDataset(data_root)   
-# %%

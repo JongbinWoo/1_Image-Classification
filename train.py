@@ -11,19 +11,20 @@ from data_loader.dataset import ImbalancedDatasetSampler, MaskDataset, get_augme
 from config import get_config
 
 #model
-from model.model import VGG
+from model.model import DenseNet, EfficientNet_b0
 from model import loss
 from model.optimizer import get_optimizer 
 
 #trianer
 from trainer.trainer import Trainer
 
+import wandb
 
 SEED = 42
 torch.manual_seed(SEED)
 
 # %%
-def main(config):
+def main(config): # wandb_config):
     # DATA SETTING
     # transform = get_augmentation(**config.TRAIN.AUGMENTATION)
     
@@ -42,7 +43,7 @@ def main(config):
     #                           num_workers=config.TRAIN.NUM_WORKERS, shuffle=True)
     # valid_loader = get_loader(valid_dataset, batch_size=config.TRAIN.BATCH_SIZE,
     #                           num_workers=config.TRAIN.NUM_WORKERS, shuffle=True)
-
+    
     transform = get_augmentation(**config.TRAIN.AUGMENTATION)
     
     dataset = MaskDataset(config.PATH.ROOT, transform=transform)
@@ -67,8 +68,9 @@ def main(config):
                                 num_workers=config.TRAIN.NUM_WORKERS, sampler=train_sampler)
     valid_loader = get_loader(dataset, batch_size=config.TRAIN.BATCH_SIZE,
                                 num_workers=config.TRAIN.NUM_WORKERS, sampler=valid_sampler)
+    
     # MODEL
-    model = VGG(config.DATASET.NUM_CLASSES)
+    model = EfficientNet_b0(config.DATASET.NUM_CLASSES, config.MODEL.HIDDEN)
     # print('[Model Info]\n\n', model)
     optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
                               lr=config.TRAIN.BASE_LR, 
@@ -80,7 +82,7 @@ def main(config):
     loss = nn.CrossEntropyLoss() ##
     
     trainer = Trainer(model, optimizer, scheduler, loss,  config, train_loader, valid_loader)
-    trainer.train()
+    trainer.train(config.TRAIN.EPOCH)#wandb_config['epochs'])
     
 # %%
 if __name__ == '__main__':
@@ -90,9 +92,43 @@ if __name__ == '__main__':
     # parser.add_argument('--lr', default=0.001, type=float)
 
     # args = parser.parse_args()
-
     config = get_config()
+    
+    # ######  WANDB ##########
+    # sweep_config = {
+    #     'method': 'random',
+    #     'metric': {
+    #         'name': 'val_acc',
+    #         'goal': 'maximize'
+    #     },
+    #     'parameters': {
+    #         'epochs': {
+    #             'values': [2, 4, 6, 8]
+    #         },
+    #         'lr': {
+    #             'distribution': 'uniform',
+    #             'min': 0.00001,
+    #             'max': 0.0001
+    #         },
+    #         'hidden_dim': {
+    #             'values': [128, 256, 512]
+    #         },
+    #     }
+    # }
+    
+    # config_default = {
+    #     'lr' : config.TRAIN.BASE_LR,
+    #     'hidden_dim': config.MODEL.HIDDEN,
+    #     'epochs': config.TRAIN.EPOCH
+    # }
+    # wandb.init(config=config_default, project='Stage-1')
+    # wandb_config = wandb.config
+
+    # sweep_id = wandb.sweep(sweep_config, project='Stage-1')
+    
+    # wandb.agent(sweep_id, main(config, wandb_config))
+    
+    # print('FINISHED')
 
     main(config)
-# %%
 
