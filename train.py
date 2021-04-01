@@ -51,7 +51,10 @@ def main(config): # wandb_config):
     len_valid_set = int(config.DATASET.RATIO * len(dataset.info_df))
     len_train_set = len(dataset) - len_valid_set
 
-    idx_sampler = iter(ImbalancedDatasetSampler(dataset.info_df)) 
+    idx_sampler = ImbalancedDatasetSampler(dataset.info_df)
+    class_to_count = idx_sampler.label_to_count
+    class_weight = torch.tensor([class_to_count[i]/len(dataset.info_df) for i in range(6)])
+    idx_sampler = iter(idx_sampler) 
     valid_indices = set(islice(idx_sampler, len_valid_set))
     train_indices = set(range(len(dataset.info_df))) - valid_indices
 
@@ -70,18 +73,39 @@ def main(config): # wandb_config):
                                 num_workers=config.TRAIN.NUM_WORKERS, sampler=valid_sampler)
     
     # MODEL
-    model = EfficientNet_b0(config.DATASET.NUM_CLASSES, config.MODEL.HIDDEN)
+    gender_age_model = DenseNet(6, config.MODEL.HIDDEN, config.MODEL.FREEZE)
+    mask_model = EfficientNet_b0(3, config.MODEL.HIDDEN, config.MODEL.FREEZE)
+
     # print('[Model Info]\n\n', model)
-    optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
+    gender_age_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
                               lr=config.TRAIN.BASE_LR, 
-                              model=model)
+                              model=gender_age_model)
+    mask_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
+                              lr=config.TRAIN.BASE_LR, 
+                              model=mask_model)
+
     import torch.optim as optim
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=2)
+    gender_age_scheduler = optim.lr_scheduler.ReduceLROnPlateau(gender_age_optimizer, 'min', patience=2)
+    mask_scheduler = optim.lr_scheduler.ReduceLROnPlateau(mask_optimizer, 'min', patience=2)
 
     import torch.nn as nn        ##
-    loss = nn.CrossEntropyLoss() ##
+    # print(class_weight)
+    gender_age_loss = nn.CrossEntropyLoss(weight=class_weight.cuda()) ##
+    mask_loss = nn.CrossEntropyLoss(weight=torch.tensor([5/7, 1/7, 1/7]).cuda()) ##
     
-    trainer = Trainer(model, optimizer, scheduler, loss,  config, train_loader, valid_loader)
+    gender_age_model_set = {
+        'model': gender_age_model,
+        'optimizer': gender_age_optimizer,
+        'scheduler': gender_age_scheduler,
+        'criterion': gender_age_loss
+    }
+    mask_model_set = {
+        'model': mask_model,
+        'optimizer': mask_optimizer,
+        'scheduler': mask_scheduler,
+        'criterion': mask_loss
+    }
+    trainer = Trainer(gender_age_model_set, mask_model_set,  config, train_loader, valid_loader)
     trainer.train(config.TRAIN.EPOCH)#wandb_config['epochs'])
     
 # %%

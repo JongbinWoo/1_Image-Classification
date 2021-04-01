@@ -13,20 +13,20 @@ num_classes = [2, 3, 3]
 feature_extract = True 
 
 #%%
-def set_parameter_requires_grad(model, feature_extracting):
-    if feature_extracting:
+def set_parameter_requires_grad(model, freeze):
+    if freeze:
         for param in model.parameters():
             param.requires_grad = False
 
 #%%
 class DenseNet(nn.Module):
-    def __init__(self, num_classes, hidden_dim):
+    def __init__(self, num_classes, hidden_dim, freeze=True):
         super(DenseNet, self).__init__()
         pretrained_model = models.densenet121(pretrained=True, progress=False)
-
+        print('Loaded pretrained weightes for DenseNet121\n')
         # pretrained_model = models.vgg16_bn(pretrained=True, progress=False)
         self.feature_extractor = nn.Sequential(*(list(pretrained_model.children())))[:-1]
-        set_parameter_requires_grad(self.feature_extractor, True)
+        set_parameter_requires_grad(self.feature_extractor, freeze)
 
         # Three Classifiers
         self.num_features = pretrained_model.classifier.in_features 
@@ -37,13 +37,10 @@ class DenseNet(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(self.num_features, self.hidden_dim),
             self.relu,
-            self.dropout)
+            self.dropout,
+            nn.Linear(self.hidden_dim, num_classes))
         
-        self.gender_classifier = nn.Linear(self.hidden_dim, num_classes[0])
             
-        self.age_classifier = nn.Linear(self.hidden_dim, num_classes[1])
-            
-        self.mask_classifier = nn.Linear(self.hidden_dim, num_classes[2])
             
         
         # initialize all fc layers to xavier
@@ -56,10 +53,7 @@ class DenseNet(nn.Module):
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = x.view(x.size(0), -1)
         x = self.fc(x)
-        gender_class = self.gender_classifier(x)
-        age_class = self.age_classifier(x)
-        mask_class = self.mask_classifier(x)
-        return gender_class, age_class, mask_class
+        return x
 
     def __str__(self):
         num_parameters = 0
@@ -78,10 +72,10 @@ class DenseNet(nn.Module):
 # %%
 from efficientnet_pytorch import EfficientNet
 class EfficientNet_b0(nn.Module):
-    def __init__(self, num_classes, hidden_dim):
+    def __init__(self, num_classes, hidden_dim, freeze=True):
         super(EfficientNet_b0, self).__init__()
         self.model = EfficientNet.from_pretrained('efficientnet-b0')
-        # set_parameter_requires_grad(self.model, True)
+        set_parameter_requires_grad(self.model, freeze)
 
         # Three Classifiers
         self.hidden_dim = hidden_dim
@@ -91,13 +85,10 @@ class EfficientNet_b0(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(1280, self.hidden_dim),
             self.relu,
-            self.dropout)
+            self.dropout,
+            nn.Linear(self.hidden_dim, num_classes))
         
-        self.gender_classifier = nn.Linear(self.hidden_dim, num_classes[0])
-            
-        self.age_classifier = nn.Linear(self.hidden_dim, num_classes[1])
-            
-        self.mask_classifier = nn.Linear(self.hidden_dim, num_classes[2])
+        
             
         
         # initialize all fc layers to xavier
@@ -110,10 +101,7 @@ class EfficientNet_b0(nn.Module):
         x = F.adaptive_avg_pool2d(x, (1, 1))
         x = x.view(x.size(0), -1)
         x = self.fc(x)
-        gender_class = self.gender_classifier(x)
-        age_class = self.age_classifier(x)
-        mask_class = self.mask_classifier(x)
-        return gender_class, age_class, mask_class
+        return x
 
     def __str__(self):
         num_parameters = 0

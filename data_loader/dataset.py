@@ -39,7 +39,7 @@ class MaskDataset(Dataset):
         else:
             mask = 0
         
-        gender, age = self._get_class(folder_idx)
+        gender_age_class = self._get_class(folder_idx)
         
         img_path = os.path.join(folder_path, img_name)
         
@@ -51,7 +51,7 @@ class MaskDataset(Dataset):
             img = self.transform(img)
         
         
-        return img, [gender, age, mask]
+        return img, [gender_age_class, mask]
 
     def __len__(self):
         return self.len
@@ -61,7 +61,7 @@ class MaskDataset(Dataset):
 
     def _get_class(self, idx):
         idx_data =  self.info_df.iloc[idx]
-        return idx_data.gender, idx_data.age_class
+        return idx_data.gender_age_class
      
 #%%
 def get_augmentation(size=224, use_flip=True, use_color_jitter=False, use_gray_scale=False, use_normalize=False):

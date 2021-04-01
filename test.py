@@ -58,12 +58,19 @@ def main(config):
         shuffle=False
     )
 
-    model = EfficientNet_b0(config.DATASET.NUM_CLASSES, 512)
-    checkpoint = torch.load(config.PATH.RESUME)
-    model.load_state_dict(checkpoint['model_state_dict'])
+    gender_age_model = DenseNet(6, config.MODEL.HIDDEN)
+    mask_model = EfficientNet_b0(3, config.MODEL.HIDDEN)
 
-    model.to(config.SYSTEM.DEVICE)
-    model.eval()
+    gender_age_checkpoint = torch.load(config.PATH.TEST_1)
+    mask_checkpoint = torch.load(config.PATH.TEST_2)
+
+    gender_age_model.load_state_dict(gender_age_checkpoint['model_state_dict'])
+    mask_model.load_state_dict(mask_checkpoint['model_state_dict'])
+
+    gender_age_model.to(config.SYSTEM.DEVICE)
+    mask_model.to(config.SYSTEM.DEVICE)
+    gender_age_model.eval()
+    mask_model.eval()
 
     print('test inference start!')
 
@@ -71,10 +78,10 @@ def main(config):
     for images in tqdm(loader):
         with torch.no_grad():
             images = images.to(config.SYSTEM.DEVICE)
-            pred = model(images)
-            # pred = pred.argmax(dim=-1)
-            pred = [p.argmax(dim=-1).cpu().numpy() for p in pred]
-            all_predictions.extend(pred[0]*3 + pred[1] + pred[2] *6)
+            gender_age = gender_age_model(images).argmax(dim=-1)
+            mask = mask_model(images).argmax(dim=-1)
+            pred = mask * 6 + gender_age
+            all_predictions.extend(pred.cpu().numpy())
     submission['ans'] = all_predictions
 
     # 제출할 파일을 저장합니다.
