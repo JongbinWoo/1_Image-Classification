@@ -75,7 +75,7 @@ class EfficientNet_b0(nn.Module):
     def __init__(self, num_classes, hidden_dim, freeze=True):
         super(EfficientNet_b0, self).__init__()
         self.model = EfficientNet.from_pretrained('efficientnet-b0')
-        set_parameter_requires_grad(self.model, freeze)
+        set_parameter_requires_grad(self.model, True)
 
         # Three Classifiers
         self.hidden_dim = hidden_dim
@@ -113,3 +113,7 @@ class EfficientNet_b0(nn.Module):
 
 
 
+
+# %%
+# model = EfficientNet.from_pretrained('efficientnet-b0')
+# %%

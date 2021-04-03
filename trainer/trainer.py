@@ -34,7 +34,7 @@ class Trainer:
         if config.TRAIN.RESUME:
             self._resume_checkpoint(config.PATH.RESUME_1, config.PATH.RESUME_2)
 
-        self.writer = SummaryWriter('runs/DenseNet_EfficientNet_1')
+        self.writer = SummaryWriter('runs')
 
     def _train_epoch(self, epoch, data_loader):
         """
@@ -59,7 +59,7 @@ class Trainer:
             gender_age = self.gender_age_model(inputs)
             mask = self.mask_model(inputs)
 
-            gender_age_loss = self.gender_age_criterion(gender_age, targets[0])
+            gender_age_loss = self.gender_age_criterion(gender_age, targets[0], targets[2])
             mask_loss = self.mask_criterion(mask, targets[1])
             
             gender_age_loss.backward()
@@ -93,7 +93,7 @@ class Trainer:
         total = 0
 
         with torch.no_grad():
-            for batch_idx, (inputs, targets) in enumerate(self.val_loader):
+            for batch_idx, (inputs, targets) in enumerate(tqdm(self.val_loader)):
                 inputs = inputs.to(self.device)
                 total += inputs.size(0)
 
@@ -101,7 +101,7 @@ class Trainer:
 
                 gender_age = self.gender_age_model(inputs)
                 mask = self.mask_model(inputs)
-                gender_age_loss = self.gender_age_criterion(gender_age, targets[0])
+                gender_age_loss = self.gender_age_criterion(gender_age, targets[0], targets[2])
                 mask_loss = self.mask_criterion(mask, targets[1])
                 
                 val_loss[0] += gender_age_loss.item()
@@ -113,12 +113,13 @@ class Trainer:
                 correct[0] += gender_age_predicted.eq(targets[0]).sum().item()
                 correct[1] += mask_predicted.eq(targets[1]).sum().item()
                 
-                self.writer.add_figure('predictions VS ground truths',
-                                    plot_classes_preds(self.gender_age_model, inputs, targets[0]),
-                                    global_step=epoch*len(self.val_loader)+batch_idx)
+                if (epoch % 2==0) and (batch_idx < 2):
+                    self.writer.add_figure('predictions VS ground truths',
+                                        plot_classes_preds(self.gender_age_model, inputs, targets[0]),
+                                        global_step=epoch*len(self.val_loader)+batch_idx)
 
-            self.gender_age_scheduler.step(float(val_loss[0]))
-            self.mask_scheduler.step(float(val_loss[1]))
+            self.gender_age_scheduler.step(float(correct[0]/total))
+            self.mask_scheduler.step(float(correct[1]/total))
 
             # grid = torchvision.utils.make_grid(inputs)
             # self.writer.add_image('images', grid, 0)
@@ -163,7 +164,7 @@ class Trainer:
         self.gender_age_model.load_state_dict(checkpoint_1['model_state_dict'])
         self.mask_model.load_state_dict(checkpoint_2['model_state_dict'])
         self.gender_age_optimizer.load_state_dict(checkpoint_1['optimizer_state_dict'])
-        self.mask_optimizer.load_state_dict(checkpoint_2['optimizer_state_dict'])
+        #self.mask_optimizer.load_state_dict(checkpoint_2['optimizer_state_dict'])
         print('Done!!\n')
 
     def train(self, epochs):
@@ -172,9 +173,9 @@ class Trainer:
             self._train_epoch(epoch, self.train_loader)
             self._vaild_epoch(epoch)
 
-            if epoch == 10:
-                self._train_epoch(epoch, self.val_loader)
-                self._train_epoch(epoch, self.val_loader)
+            # if epoch == 10:
+            #     self._train_epoch(epoch, self.val_loader)
+            #     self._train_epoch(epoch, self.val_loader)
 
 
             if epoch % self.config.TRAIN.PERIOD == 0:

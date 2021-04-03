@@ -12,15 +12,14 @@ from config import get_config
 
 #model
 from model.model import DenseNet, EfficientNet_b0
-from model import loss
-from model.optimizer import get_optimizer 
-
+from model.loss import CustomLoss
+from model.optimizer import get_optimizer, get_adamp
 #trianer
 from trainer.trainer import Trainer
 
-import wandb
 
-SEED = 42
+
+SEED = 22
 torch.manual_seed(SEED)
 
 # %%
@@ -44,7 +43,7 @@ def main(config): # wandb_config):
     # valid_loader = get_loader(valid_dataset, batch_size=config.TRAIN.BATCH_SIZE,
     #                           num_workers=config.TRAIN.NUM_WORKERS, shuffle=True)
     
-    transform = get_augmentation(**config.TRAIN.AUGMENTATION)
+    transform = get_augmentation()
     
     dataset = MaskDataset(config.PATH.ROOT, transform=transform)
 
@@ -53,11 +52,10 @@ def main(config): # wandb_config):
 
     idx_sampler = ImbalancedDatasetSampler(dataset.info_df)
     class_to_count = idx_sampler.label_to_count
-    class_weight = torch.tensor([class_to_count[i]/len(dataset.info_df) for i in range(6)])
+    class_weight = torch.tensor([len(dataset.info_df)/(class_to_count[i]*6) for i in range(6)])
     idx_sampler = iter(idx_sampler) 
     valid_indices = set(islice(idx_sampler, len_valid_set))
     train_indices = set(range(len(dataset.info_df))) - valid_indices
-
     def return_image_indices(i):
         return i*7, i*7+1, i*7+2, i*7+3, i*7+4, i*7+5, i*7+6
 
@@ -77,22 +75,30 @@ def main(config): # wandb_config):
     mask_model = EfficientNet_b0(3, config.MODEL.HIDDEN, config.MODEL.FREEZE)
 
     # print('[Model Info]\n\n', model)
-    gender_age_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
-                              lr=config.TRAIN.BASE_LR, 
-                              model=gender_age_model)
-    mask_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
-                              lr=config.TRAIN.BASE_LR, 
-                              model=mask_model)
-
+    # gender_age_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
+    #                           lr=config.TRAIN.BASE_LR, 
+    #                           model=gender_age_model)
+    # mask_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
+    #                           lr=config.TRAIN.BASE_LR, 
+    #                           model=mask_model)
+    gender_age_optimizer = get_adamp(lr=config.TRAIN.BASE_LR, model=gender_age_model, weight_decay=1e-6)
+    mask_optimizer = get_adamp(lr=config.TRAIN.BASE_LR, model=mask_model, weight_decay=1e-6)
     import torch.optim as optim
-    gender_age_scheduler = optim.lr_scheduler.ReduceLROnPlateau(gender_age_optimizer, 'min', patience=2)
-    mask_scheduler = optim.lr_scheduler.ReduceLROnPlateau(mask_optimizer, 'min', patience=2)
+    gender_age_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(gender_age_optimizer, T_0= 10, T_mult= 1, eta_min= 1e-6, last_epoch=-1)
+    mask_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(mask_optimizer, T_0= 10, T_mult= 1, eta_min= 1e-6, last_epoch=-1)
+
+    # gender_age_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(gender_age_optimizer, T_0=3, T_mult=1, eta_min=5e-5)
+    # mask_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(mask_optimizer, T_0=3, T_mult=1, eta_min=5e-5)
 
     import torch.nn as nn        ##
     # print(class_weight)
-    gender_age_loss = nn.CrossEntropyLoss(weight=class_weight.cuda()) ##
+    # gender_age_loss = nn.CrossEntropyLoss(weight=class_weight.cuda()) ##
+    # mask_loss = nn.CrossEntropyLoss(weight=torch.tensor([5/7, 1/7, 1/7]).cuda()) ##
+    
+    gender_age_loss = CustomLoss(class_weight.cuda(), config.TRAIN.T) ##
     mask_loss = nn.CrossEntropyLoss(weight=torch.tensor([5/7, 1/7, 1/7]).cuda()) ##
     
+
     gender_age_model_set = {
         'model': gender_age_model,
         'optimizer': gender_age_optimizer,

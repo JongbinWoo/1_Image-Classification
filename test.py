@@ -1,5 +1,6 @@
 #%%
 from PIL import Image
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -10,9 +11,9 @@ import os
 from torch.utils.data.dataloader import DataLoader
 
 from torch.utils.data.dataset import Dataset
-from torchvision import transforms
-from torchvision.transforms import ToTensor, CenterCrop
 
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 #config
 from config import get_config
@@ -30,10 +31,14 @@ class TestDataset(Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        image = Image.open(self.img_paths[index])
-
+        # image = Image.open(self.img_paths[index])
+        img_path = self.img_paths[index]
+        img = cv2.imread(img_path)
+        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         if self.transform:
-            image = self.transform(image)
+            augmented = self.transform(image=image)
+            image = augmented['image']
+            
         return image
 
     def __len__(self):
@@ -46,10 +51,10 @@ def main(config):
     image_dir = os.path.join(test_dir, 'images')
     image_paths = [os.path.join(image_dir, img_id) for img_id in submission.ImageID]
 
-    transform = transforms.Compose([
-        CenterCrop(224),
-        ToTensor(),
-        Normalize((0.560, 0.524, 0.501), (0.233, 0.243, 0.245))
+    transform = A.Compose([
+        A.CenterCrop(p=1, height=224, width=224),
+        A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ToTensorV2()
     ])
     dataset = TestDataset(image_paths, transform)
 
@@ -61,6 +66,7 @@ def main(config):
     gender_age_model = DenseNet(6, config.MODEL.HIDDEN)
     mask_model = EfficientNet_b0(3, config.MODEL.HIDDEN)
 
+    print('Load Test Model...\n')
     gender_age_checkpoint = torch.load(config.PATH.TEST_1)
     mask_checkpoint = torch.load(config.PATH.TEST_2)
 

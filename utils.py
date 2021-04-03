@@ -32,23 +32,23 @@ def matplotlib_imshow(img, one_channel=False):
     if one_channel:
         img = img.mean(dim=0)
     img = img / 2 + 0.5
-    npimg = img.numpy()
+    npimg = img.cpu().numpy()
     if one_channel:
         plt.imshow(npimg, cmap="Greys")
     else:
-        plt.imshow(np.transpose(npimg, (1,2,0)))
+        plt.imshow(np.transpose(npimg.astype(np.uint8), (1,2,0)))
 
 def images_to_probs(net, images):
     output = net(images)
     _, preds_tensor = torch.max(output, 1)
-    preds = np.squeeze(preds_tensor.numpy())
+    preds = np.squeeze(preds_tensor.cpu().numpy())
     return preds, [F.softmax(el, dim=0)[i].item() for i, el in zip(preds, output)]
 
 def plot_classes_preds(net, images, labels):
     preds, probs = images_to_probs(net, images)
     fig = plt.figure(figsize=(12, 48))
-    for idx in np.arange(4):
-        ax = fig.add_subplot(1, 4, idx+1, xticks=[], yticks=[])
+    for idx in np.arange(len(labels)):
+        ax = fig.add_subplot(8, 8, idx+1, xticks=[], yticks=[])
         matplotlib_imshow(images[idx], one_channel=False)
         ax.set_title(f'{preds[idx]}, {probs[idx]:.1f}%\n(label: {labels[idx]})', 
                      color=("green" if preds[idx]==labels[idx].item() else "red"))
