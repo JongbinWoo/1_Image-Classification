@@ -121,10 +121,10 @@ class Trainer:
                 if (epoch % 2==0) and (batch_idx < 2):
                     self.writer.add_figure('predictions VS ground truths',
                                         plot_classes_preds(self.gender_age_model, inputs, targets[0]),
-                                        global_step=epoch*len(self.val_loader)+batch_idx)
+                                        global_step=epoch+batch_idx)
 
-            self.gender_age_scheduler.step(float(correct[0]/total))
-            self.mask_scheduler.step(float(correct[1]/total))
+            # self.gender_age_scheduler.step(float(correct[0]/total))
+            # self.mask_scheduler.step(float(correct[1]/total))
 
             # grid = torchvision.utils.make_grid(inputs)
             # self.writer.add_image('images', grid, 0)
@@ -178,7 +178,7 @@ class Trainer:
         self.scaler_2 = GradScaler()
 
         for epoch in range(self.start_epoch, epochs):
-            self._train_epoch(epoch, self.train_loader)
+            self._train_epoch(epoch, self.val_loader)
             self._vaild_epoch(epoch)
             
 

@@ -24,10 +24,10 @@ def get_config():
     config.PATH.SAVEDIR = './checkpoint'
     # config.PATH.CHECKPOINT = args.r
     config.PATH.ROOT = '/opt/ml/input/data/train/images'
-    config.PATH.RESUME_1 = '/opt/ml/code/checkpoint/DenseNet_7'
-    config.PATH.RESUME_2 = '/opt/ml/code/checkpoint/EfficientNet_7'
-    config.PATH.TEST_1 = '/opt/ml/code/checkpoint/DenseNet_4'
-    config.PATH.TEST_2 = '/opt/ml/code/checkpoint/EfficientNet_4'
+    config.PATH.RESUME_1 = '/opt/ml/code/checkpoint/DenseNet_3'
+    config.PATH.RESUME_2 = '/opt/ml/code/checkpoint/EfficientNet_5'
+    config.PATH.TEST_1 = '/opt/ml/code/checkpoint/DenseNet_5'
+    config.PATH.TEST_2 = '/opt/ml/code/checkpoint/EfficientNet_5'
     
 
     config.DATASET.NUM_CLASSES = [2, 3, 3]
@@ -40,7 +40,7 @@ def get_config():
                                  
     config.TRAIN.EPOCH = 50 #args.epochs
     config.TRAIN.BATCH_SIZE = 64 #args.batch_size
-    config.TRAIN.NUM_WORKERS = 5
+    config.TRAIN.NUM_WORKERS = 4
     config.TRAIN.BASE_LR = 1e-4 #args.lr 
     config.TRAIN.PERIOD = 1
     config.TRAIN.RESUME = True

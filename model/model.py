@@ -8,10 +8,10 @@ import torch
 # Pretrained_model
 
 
-model_name = 'densenet'
-num_classes = [2, 3, 3]
-feature_extract = True 
-
+# model_name = 'densenet'
+# num_classes = [2, 3, 3]
+# feature_extract = True 
+# sample_image = torch.randn(1, 3, 384, 384)
 #%%
 def set_parameter_requires_grad(model, freeze):
     if freeze:

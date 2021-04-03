@@ -10,9 +10,9 @@ train_df = pd.read_csv('/opt/ml/input/data/train/train.csv')
 train_df = train_df[['id', 'gender', 'age', 'path']]
 # %%
 # Set classes of each image
-train_df.gender.replace(
-    {'male': 0, 'female':1}, inplace=True
-)
+# train_df.gender.replace(
+#     {'male': 0, 'female':1}, inplace=True
+# )
 
 def _get_age_class(age):
     if age >= 60:
@@ -45,7 +45,7 @@ def check_num_files(root, folder_names):
         img_list = glob(os.path.join(path, '*.jpg'))
         img_list = list(map(os.path.basename, img_list))
 
-        if len(img_list) != 7:
+        if len(img_list)  != 7:
             print(img_list)
 # %%
 check_num_files(data_root, folder_names)
@@ -58,13 +58,27 @@ def png2jpg(root, folder_names):
     """
     for folder_name in folder_names:
         path = os.path.join(root, folder_name)
-        img_list = glob(os.path.join(path, '*.png')) # .jpeg
+        img_list = glob(os.path.join(path, '*.jpeg')) #  *.png
+        # img_list = list(map(os.path.basename, img_list))
+        
+        for img_path in img_list:
+            print(img_path)
+            img = Image.open(img_path)
+            new_path = img_path[:-5]+'.jpg' # 4
+            img.save(new_path)
+
+    for folder_name in folder_names:
+        path = os.path.join(root, folder_name)
+        img_list = glob(os.path.join(path, '*.png')) #  *.png
         # img_list = list(map(os.path.basename, img_list))
 
         for img_path in img_list:
             # print(img_path)
             img = Image.open(img_path)
-            new_path = img_path[:-4]+'.jpg' # 5
+            new_path = img_path[:-4]+'.jpg' # 4
+            print(new_path)
             img.save(new_path)
 
 png2jpg(data_root, folder_names)
+
+# %%

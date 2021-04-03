@@ -80,7 +80,7 @@ def get_augmentation():
     
     # transform = transforms.Compose(transforms_array[transforms_mask])
     transform = A.Compose([
-        A.CenterCrop(p=1, height=224, width=224),
+        A.CenterCrop(p=1, height=384, width=384),
         # A.HorizontalFlip(p=0.5),
         # A.OpticalDistortion(p=0.5),
         # A.GridDropout(p=0.5),
