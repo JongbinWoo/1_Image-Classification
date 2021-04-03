@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
+import random 
+import os 
 
 class MetricTracker:
     def __init__(self, *keys, writer=None):
@@ -53,4 +55,12 @@ def plot_classes_preds(net, images, labels):
         ax.set_title(f'{preds[idx]}, {probs[idx]:.1f}%\n(label: {labels[idx]})', 
                      color=("green" if preds[idx]==labels[idx].item() else "red"))
     return fig
-        
+
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True

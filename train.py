@@ -1,4 +1,5 @@
 #%%
+from random import seed
 import torch
 import argparse
 from itertools import islice
@@ -17,10 +18,9 @@ from model.optimizer import get_optimizer, get_adamp
 #trianer
 from trainer.trainer import Trainer
 
+from utils import seed_everything
 
 
-SEED = 22
-torch.manual_seed(SEED)
 
 # %%
 def main(config): # wandb_config):
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
     # args = parser.parse_args()
     config = get_config()
-    
+    seed(77)
     # ######  WANDB ##########
     # sweep_config = {
     #     'method': 'random',

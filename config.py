@@ -24,14 +24,14 @@ def get_config():
     config.PATH.SAVEDIR = './checkpoint'
     # config.PATH.CHECKPOINT = args.r
     config.PATH.ROOT = '/opt/ml/input/data/train/images'
-    config.PATH.RESUME_1 = '/opt/ml/code/checkpoint/DenseNet_9'
-    config.PATH.RESUME_2 = '/opt/ml/code/checkpoint/EfficientNet_1'
-    config.PATH.TEST_1 = '/opt/ml/code/checkpoint/DenseNet_10'
-    config.PATH.TEST_2 = '/opt/ml/code/checkpoint/EfficientNet_10'
+    config.PATH.RESUME_1 = '/opt/ml/code/checkpoint/DenseNet_7'
+    config.PATH.RESUME_2 = '/opt/ml/code/checkpoint/EfficientNet_7'
+    config.PATH.TEST_1 = '/opt/ml/code/checkpoint/DenseNet_4'
+    config.PATH.TEST_2 = '/opt/ml/code/checkpoint/EfficientNet_4'
     
 
     config.DATASET.NUM_CLASSES = [2, 3, 3]
-    config.DATASET.RATIO = 0.15
+    config.DATASET.RATIO = 0.1
 
     config.TRAIN.AUGMENTATION = {'size': 28,
                                  'use_flip': False,
@@ -43,8 +43,8 @@ def get_config():
     config.TRAIN.NUM_WORKERS = 5
     config.TRAIN.BASE_LR = 1e-4 #args.lr 
     config.TRAIN.PERIOD = 1
-    config.TRAIN.RESUME = False
-    config.TRAIN.T = 3
+    config.TRAIN.RESUME = True
+    config.TRAIN.T = 1
     
     config.MODEL.PRETRAINED = True
     config.MODEL.FREEZE = False

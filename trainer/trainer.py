@@ -7,6 +7,8 @@ import torchvision
 from torch.utils.tensorboard import SummaryWriter
 from utils import plot_classes_preds
 
+from torch.cuda.amp import GradScaler, autocast
+
 class Trainer:
     def __init__(self, model_set_1, model_set_2 , config, train_loader, val_loader):
         self.config = config 
@@ -34,7 +36,7 @@ class Trainer:
         if config.TRAIN.RESUME:
             self._resume_checkpoint(config.PATH.RESUME_1, config.PATH.RESUME_2)
 
-        self.writer = SummaryWriter('runs')
+        self.writer = SummaryWriter('runs/ex1')
 
     def _train_epoch(self, epoch, data_loader):
         """
@@ -55,17 +57,20 @@ class Trainer:
 
             self.gender_age_optimizer.zero_grad()
             self.mask_optimizer.zero_grad()
-            
-            gender_age = self.gender_age_model(inputs)
-            mask = self.mask_model(inputs)
+            with autocast():
+                gender_age = self.gender_age_model(inputs)
+                mask = self.mask_model(inputs)
 
-            gender_age_loss = self.gender_age_criterion(gender_age, targets[0], targets[2])
-            mask_loss = self.mask_criterion(mask, targets[1])
+                gender_age_loss = self.gender_age_criterion(gender_age, targets[0], targets[2])
+                mask_loss = self.mask_criterion(mask, targets[1])
             
-            gender_age_loss.backward()
-            mask_loss.backward()
-            self.gender_age_optimizer.step()
-            self.mask_optimizer.step()
+            self.scaler_1.scale(gender_age_loss).backward()
+            self.scaler_2.scale(mask_loss).backward()
+            self.scaler_1.step(self.gender_age_optimizer)
+            self.scaler_2.step(self.mask_optimizer)
+
+            self.scaler_1.update()
+            self.scaler_2.update()
 
             train_loss[0] += gender_age_loss.item()
             train_loss[1] += mask_loss.item()
@@ -169,9 +174,13 @@ class Trainer:
 
     def train(self, epochs):
         print('Trianing Start!!\n')
+        self.scaler_1 = GradScaler()
+        self.scaler_2 = GradScaler()
+
         for epoch in range(self.start_epoch, epochs):
             self._train_epoch(epoch, self.train_loader)
             self._vaild_epoch(epoch)
+            
 
             # if epoch == 10:
             #     self._train_epoch(epoch, self.val_loader)
