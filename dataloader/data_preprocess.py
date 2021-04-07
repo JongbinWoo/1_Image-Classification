@@ -3,10 +3,11 @@ import pandas as pd
 
 import os
 from glob import glob
+from sklearn.model_selection import train_test_split, StratifiedKFold
+train_df = pd.read_csv('/opt/ml/input/data/train/train.csv')
 
 #%%
 # Load data
-train_df = pd.read_csv('/opt/ml/input/data/train/train.csv')
 train_df = train_df[['id', 'gender', 'age', 'path']]
 # %%
 # Set classes of each image
@@ -82,3 +83,14 @@ def png2jpg(root, folder_names):
 png2jpg(data_root, folder_names)
 
 # %%
+########### K FOLD 확인해보기 ###########
+# train_df = pd.read_csv('/opt/ml/input/data/train/train.csv')
+# # %%
+# skf = StratifiedKFold(n_splits=5)
+# for fold, (_, val_) in enumerate(skf.split(X=train_df, y=train_df.age_class)):
+#     train_df.loc[val_, 'kfold'] = int(fold)
+
+# train_df['kfold'] = train_df['kfold'].astype(int)
+# %%
+# import seaborn as sns
+# sns.countplot(x='age_class', data=train_df[train_df.kfold == 1])

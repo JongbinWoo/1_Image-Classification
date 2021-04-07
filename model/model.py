@@ -71,22 +71,29 @@ class DenseNet(nn.Module):
 # summary(model.cuda(), (3, 224, 224))
 # %%
 from efficientnet_pytorch import EfficientNet
+import timm
+from timm.models.layers.classifier import ClassifierHead
 class EfficientNet_b0(nn.Module):
-    def __init__(self, num_classes, hidden_dim, freeze=True):
+    def __init__(self, num_classes, freeze=False):
         super(EfficientNet_b0, self).__init__()
-        self.model = EfficientNet.from_pretrained('efficientnet-b0')
-        set_parameter_requires_grad(self.model, True)
+        # self.model = EfficientNet.from_pretrained('efficientnet-b0')
+        self.model = timm.create_model('tf_efficientnet_b0_ns', pretrained=True)
+        n_features = self.model.classifier.in_features
+        # self.model.classifier = nn.Identity()
+        self.fc = ClassifierHead(n_features, 6)
+        
+        set_parameter_requires_grad(self.model, freeze)
 
         # Three Classifiers
-        self.hidden_dim = hidden_dim
-        self.dropout = nn.Dropout(p=0.5)
-        self.relu = nn.ReLU()
+        # self.hidden_dim = hidden_dim
+        # self.dropout = nn.Dropout(p=0.5)
+        # self.relu = nn.ReLU()
 
-        self.fc = nn.Sequential(
-            nn.Linear(1280, self.hidden_dim),
-            self.relu,
-            self.dropout,
-            nn.Linear(self.hidden_dim, num_classes))
+        # self.fc = nn.Sequential(
+        #     nn.Linear(n_features, self.hidden_dim),
+        #     self.relu,
+        #     self.dropout,
+        #     nn.Linear(self.hidden_dim, num_classes))
         
         
             
@@ -97,9 +104,12 @@ class EfficientNet_b0(nn.Module):
                 torch.nn.init.xavier_normal_(m.weight, gain = 1)
                 
     def forward(self, x):
-        x = self.model.extract_features(x)
-        x = F.adaptive_avg_pool2d(x, (1, 1))
-        x = x.view(x.size(0), -1)
+        # x = self.model(x)#extract_features(x)
+        # # x = F.adaptive_avg_pool2d(x, (1, 1))
+        # x = x.view(x.size(0), -1)
+        # x = self.fc(x)
+        # return x
+        x = self.model.forward_features(x)
         x = self.fc(x)
         return x
 
@@ -115,5 +125,22 @@ class EfficientNet_b0(nn.Module):
 
 
 # %%
-# model = EfficientNet.from_pretrained('efficientnet-b0')
-# %%
+class ResNext(nn.Module):
+    def __init__(self, num_classes, freeze=False):
+        super(ResNext, self).__init__()
+        # self.model = EfficientNet.from_pretrained('efficientnet-b0')
+        self.model = timm.create_model('resnext50_32x4d', pretrained=True)
+        n_features = self.model.fc.in_features
+        # self.model.classifier = nn.Identity()
+        self.model.fc = nn.Linear(n_features, num_classes)
+        
+        set_parameter_requires_grad(self.model, freeze)
+        
+        # initialize all fc layers to xavier
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_normal_(m.weight, gain = 1)
+                
+    def forward(self, x):
+        x = self.model(x)
+        return x

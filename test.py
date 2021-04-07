@@ -126,7 +126,12 @@ if __name__ == '__main__':
     # parser.add_argument('--batch_size', default=256, type=int)
 
     # args = parser.parse_args()
-
+    enet_type = ['tf_efficientnet_b4_ns'] * 5
+    model_path = ['../input/cassava-models-eff/baseline_cld_fold0_epoch8_tf_efficientnet_b4_ns_512.pth', 
+              '../input/cassava-models-eff/baseline_cld_fold1_epoch9_tf_efficientnet_b4_ns_512.pth', 
+              '../input/cassava-models-eff/baseline_cld_fold2_epoch9_tf_efficientnet_b4_ns_512.pth',
+              '../input/cassava-models-eff/baseline_cld_fold3_epoch5_tf_efficientnet_b4_ns_512.pth',
+              '../input/cassava-models-eff/baseline_cld_fold4_epoch11_tf_efficientnet_b4_ns_512.pth']
     config = get_config()
 
     main(config)
