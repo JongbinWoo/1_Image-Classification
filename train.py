@@ -83,7 +83,7 @@ def main(config):
     f1s = []
     for fold, dataloader in enumerate(dataloaders):
         print(f'\n----------- FOLD {fold} TRAINING START --------------\n')
-        model = EfficientNet_b0(6, config.MODEL.FREEZE)
+        model = EfficientNet_b0(6, True, config.MODEL.FREEZE)
         optimizer = get_adamp(lr=config.TRAIN.BASE_LR, model=model, weight_decay=1e-6)
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0= 10, T_mult= 1, eta_min= 1e-6, last_epoch=-1)
         model_set = {

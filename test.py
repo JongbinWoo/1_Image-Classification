@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-from torchvision.transforms.transforms import Normalize
 from tqdm import tqdm
 import pandas as pd
 import os

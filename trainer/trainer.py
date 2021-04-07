@@ -153,7 +153,7 @@ class Trainer:
             epoch_f1 = self._vaild_epoch(epoch)
             if epoch_f1 >= best_f1:
                 best_f1 = epoch_f1
-                best_model_wts = copy.deepcopy(self.model)
+                best_model_wts = copy.deepcopy(self.model.state_dict())
         save_name = f'F1_Fold{self.fold}_ef0_ns.pth'
         
         save_path = os.path.join(self.save_path, save_name)

@@ -13,9 +13,6 @@ class ConfigTree:
         self.MODEL = AttributeDict()
 
         self.KD = AttributeDict()
-
-
-
         
 def get_config():
     config = ConfigTree()
@@ -34,7 +31,7 @@ def get_config():
 
     config.TRAIN.EPOCH = 10 #args.epochs
     config.TRAIN.BATCH_SIZE = 64 #args.batch_size
-    config.TRAIN.NUM_WORKERS = 4
+    config.TRAIN.NUM_WORKERS = 5
     config.TRAIN.BASE_LR = 1e-4 #args.lr 
     config.TRAIN.PERIOD = 1
     config.TRAIN.RESUME = False
