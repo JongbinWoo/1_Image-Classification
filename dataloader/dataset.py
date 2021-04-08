@@ -5,7 +5,7 @@ from albumentations.augmentations.transforms import ISONoise
 import numpy as np
 import pandas as pd
 import cv2
-from PIL import Image
+import random
 import matplotlib.pyplot as plt
 from glob import glob
 import torch
@@ -38,8 +38,6 @@ class MaskDataset(Dataset):
         
         img = cv2.imread(img_path) # numpy ndarray type으로 리턴
         image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # image = Image.open(image_path)
-        # image = image/255.
         if self.transform:
             augmented = self.transform(image=image)
             image = augmented['image']
@@ -54,7 +52,101 @@ class MaskDataset(Dataset):
         idx_data =  self.info_df.loc[idx]
         return idx_data.gender_age_class, idx_data.age
      
+class MaskDataset__(Dataset):
+    def __init__(self,
+                 df, 
+                 root_dir='/opt/ml/input/data/train/image',
+                 transform=ToTensorV2):
+        super(MaskDataset__, self).__init__()
+        self.root_dir = root_dir
+        self.info_df = df
+        self.transform = transform
+               
 
+    def __getitem__(self, index):
+        folder_idx, img_idx = divmod(index, 7)
+        folder_path = self.info_df.loc[folder_idx].path
+        folder_path = os.path.join(self.root_dir, folder_path)
+        
+        # img_path = os.path.join(folder_path, 'normal.jpg')
+
+        mask_list = glob(os.path.join(folder_path, 'mask*.jpg'))
+        # mask_path = random.choice(mask_list)
+        # print(f'mask_path: {mask_path}')
+        normal_path = os.path.join(folder_path, 'normal.jpg')
+        # print(f'normal_path: {normal_path}')
+        incorrect_path = os.path.join(folder_path, 'incorrect_mask.jpg')
+        # print(f'incorrect_path: {incorrect_path}')
+
+        img_list = [*mask_list, incorrect_path, normal_path]
+        # print(img_list)
+        img_path = img_list[img_idx]
+        # print(f'img_path: {img_path}')
+        if 'normal' in img_path: 
+            mask = 2
+        elif 'incorrect_mask' in img_path: 
+            mask = 1
+        else:
+            mask = 0
+
+        img = cv2.imread(img_path) # numpy ndarray type으로 리턴
+        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if self.transform:
+            augmented = self.transform(image=image)
+            image = augmented['image']
+        
+        return image, mask
+
+    def __len__(self):
+        return len(self.info_df) * 7  
+
+class MaskDataset_(Dataset):
+    def __init__(self,
+                 df, 
+                 root_dir='/opt/ml/input/data/train/image',
+                 transform=ToTensorV2):
+        super(MaskDataset_, self).__init__()
+        self.root_dir = root_dir
+        self.info_df = df
+        self.transform = transform
+               
+
+    def __getitem__(self, index):
+        folder_idx, img_idx = divmod(index, 3)
+        folder_path = self.info_df.loc[folder_idx].path
+        folder_path = os.path.join(self.root_dir, folder_path)
+        
+        # img_path = os.path.join(folder_path, 'normal.jpg')
+
+        mask_list = glob(os.path.join(folder_path, 'mask*.jpg'))
+        mask_path = random.choice(mask_list)
+        # print(f'mask_path: {mask_path}')
+        normal_path = os.path.join(folder_path, 'normal.jpg')
+        # print(f'normal_path: {normal_path}')
+        incorrect_path = os.path.join(folder_path, 'incorrect_mask.jpg')
+        # print(f'incorrect_path: {incorrect_path}')
+
+        img_list = [mask_path, incorrect_path, normal_path]
+        # print(img_list)
+        img_path = img_list[img_idx]
+        # print(f'img_path: {img_path}')
+        if 'normal' in img_path: 
+            mask = 2
+        elif 'incorrect_mask' in img_path: 
+            mask = 1
+        else:
+            mask = 0
+
+        img = cv2.imread(img_path) # numpy ndarray type으로 리턴
+        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if self.transform:
+            augmented = self.transform(image=image)
+            image = augmented['image']
+        
+        return image, mask
+
+    def __len__(self):
+        return len(self.info_df) * 3     
 
 # %%
 def get_augmentation(config):
@@ -146,11 +238,10 @@ class TestDataset(Dataset):
         return len(self.img_paths)
 
 def get_test_transforms(CFG):
+    normalize = A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    to_tensor = ToTensorV2()
     return A.Compose([
-        A.Resize(CFG.size, CFG.size),
-        A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
-        ToTensorV2(),
+        A.CenterCrop(p=1, height=384, width=256),
+        normalize,       
+        to_tensor
     ])

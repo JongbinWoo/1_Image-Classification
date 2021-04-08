@@ -1,4 +1,3 @@
-from model.model import set_parameter_requires_grad
 from model.loss import LabelSmoothing
 import os
 import copy
@@ -9,8 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 import torchvision
-# import wandb
-from torch.utils.tensorboard import SummaryWriter
 from utils import seed_everything
 # from utils import plot_classes_preds
 from dataloader.dataset import generate_cutmix_image
@@ -55,26 +52,18 @@ class Trainer:
         for batch_idx, (inputs, targets) in enumerate(tqdm(self.train_loader)):
             inputs = inputs.float().to(self.device)
             total += inputs.size(0)
-            targets = [target.to(self.device) for target in targets]
-            labels = targets[0]
-            ages = targets[1]
-
-            label_smoothing= LabelSmoothing(6, 0.4)
-            soft_targets_1 = label_smoothing(inputs.size(0), labels)
-            soft_targets_2 = convert_target(6, labels, ages)
-            soft_targets = (soft_targets_1 + soft_targets_2) / 2
-
-            if torch.rand(1) > 0.5:
-            # targets = F.one_hot(targets[0], num_classes=6).float()
-                inputs, soft_targets = generate_cutmix_image(inputs, soft_targets)
-            # show_images(inputs)
-            # print(targets)
+            # targets = [target.to(self.device) for target in targets]
+            # labels = targets[0]
+            labels = targets.to(self.device)
+            # print(labels)
+            label_smoothing= LabelSmoothing(3, 0.2)
+            soft_targets = label_smoothing(inputs.size(0), labels)
             
             self.optimizer.zero_grad()
             with autocast():
-                gender_age = self.model(inputs)
+                mask = self.model(inputs)
 
-                loss = self.criterion(gender_age, soft_targets)
+                loss = self.criterion(mask, soft_targets)
             
             self.scaler_1.scale(loss).backward()
             self.scaler_1.step(self.optimizer)
@@ -83,7 +72,7 @@ class Trainer:
 
             train_loss += loss.item()
 
-            _, predicted = gender_age.max(1)
+            _, predicted = mask.max(1)
 
             correct += predicted.eq(labels).sum().item()
         # print(f'[TRAIN][AGE] Loss: {train_loss/(batch_idx+1):.3f} | Acc: {100.*correct/total:.3f}')
@@ -104,17 +93,18 @@ class Trainer:
                 inputs = inputs.to(self.device)
                 total += inputs.size(0)
 
-                targets = [target.to(self.device) for target in targets]
-                labels = targets[0]
+                # targets = [target.to(self.device) for target in targets]
+                # labels = targets[0]
                 # targets = convert_target(6, targets[0], targets[1])
-                targets = F.one_hot(targets[0], num_classes=6).float()
+                labels = targets.to(self.device)
+                # targets = F.one_hot(labels, num_classes=3).float()
 
-                gender_age = self.model(inputs)
-                # loss = self.criterion(gender_age, targets)
+                mask = self.model(inputs)
+                # loss = self.criterion(mask, targets)
                 
                 # val_loss += loss.item()
 
-                _, predicted = gender_age.max(1)
+                _, predicted = mask.max(1)
                 
                 correct += predicted.eq(labels).sum().item()
                 self.scheduler.step()
@@ -150,14 +140,12 @@ class Trainer:
         
         best_f1 = 0.0
         for epoch in range(epochs):
-            if epoch == 5:
-                set_parameter_requires_grad(self.model.model, True)
             self._train_epoch(epoch)
             epoch_f1 = self._vaild_epoch(epoch)
-            if epoch_f1 >= best_f1:
+            if epoch_f1 > best_f1:
                 best_f1 = epoch_f1
                 best_model_wts = copy.deepcopy(self.model.state_dict())
-        save_name = f'F1_Fold{self.fold}_ef_final.pth'
+        save_name = f'F1_Fold{self.fold}_mask.pth'
         
         save_path = os.path.join(self.save_path, save_name)
         torch.save(best_model_wts, save_path) 

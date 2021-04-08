@@ -11,7 +11,7 @@ def set_parameter_requires_grad(model, freeze):
 
 #%%
 class DenseNet(nn.Module):
-    def __init__(self, num_classes, hidden_dim, freeze=True):
+    def __init__(self, num_classes, hidden_dim, freeze=False):
         super(DenseNet, self).__init__()
         pretrained_model = models.densenet121(pretrained=True, progress=False)
         print('Loaded pretrained weightes for DenseNet121\n')
@@ -58,7 +58,7 @@ class EfficientNet_b0(nn.Module):
         self.model = timm.create_model('tf_efficientnet_b0_ns', pretrained=pretrained)
         n_features = self.model.classifier.in_features
         # self.model.classifier = nn.Identity()
-        self.fc = ClassifierHead(n_features, 6)
+        self.fc = ClassifierHead(n_features, num_classes)
         
         set_parameter_requires_grad(self.model, freeze)
                 
@@ -67,6 +67,21 @@ class EfficientNet_b0(nn.Module):
         x = self.fc(x)
         return x
 
+class EfficientNet_b4(nn.Module):
+    def __init__(self, num_classes, pretrained=True, freeze=False):
+        super(EfficientNet_b4, self).__init__()
+        # self.model = EfficientNet.from_pretrained('efficientnet-b0')
+        self.model = timm.create_model('tf_efficientnet_b4_ns', pretrained=pretrained)
+        n_features = self.model.classifier.in_features
+        # self.model.classifier = nn.Identity()
+        self.fc = ClassifierHead(n_features, num_classes)
+        
+        set_parameter_requires_grad(self.model, freeze)
+                
+    def forward(self, x):
+        x = self.model.forward_features(x)
+        x = self.fc(x)
+        return x
 
 from efficientnet_pytorch import EfficientNet
 class EfficientNet_mask(nn.Module):

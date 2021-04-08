@@ -29,7 +29,7 @@ def get_config():
     config.TRAIN.WIDTH = 256
     config.TRAIN.HEIGHT = 384
 
-    config.TRAIN.EPOCH = 10 #args.epochs
+    config.TRAIN.EPOCH = 7 #args.epochs
     config.TRAIN.BATCH_SIZE = 64 #args.batch_size
     config.TRAIN.NUM_WORKERS = 5
     config.TRAIN.BASE_LR = 1e-4 #args.lr 
@@ -39,8 +39,8 @@ def get_config():
     config.TRAIN.LOSS = 'Cumbo'
     config.TRAIN.T = 10
     config.TRAIN.ALPHA = 0.05
-    config.TRAIN.M = 1.3
-    config.TRAIN.GAMMA = 0.5
+    config.TRAIN.M = 1.0
+    config.TRAIN.GAMMA = 0.2
 
     config.MODEL.PRETRAINED = True
     config.MODEL.FREEZE = False

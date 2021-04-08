@@ -1,24 +1,24 @@
 #%%
 import os
 from utils import seed_everything
-from model.model import EfficientNet_b0, EfficientNet_mask
+from model.model import EfficientNet_b0,EfficientNet_b4, EfficientNet_mask
 from dataloader.dataset import TestDataset
 from dataloader.dataset import get_test_transforms
 import numpy as np
 import pandas as pd
-
+from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
-
+import pickle
 import warnings 
 warnings.filterwarnings('ignore')
 
 class CFG:
     debug=False
-    num_workers=8
+    num_workers=5
     model_name='F1_Fold' #0_ef0_ns.pth'
     size=512
-    batch_size=32
+    batch_size=128
     seed=2020
     target_size=5
     target_col='label'
@@ -44,10 +44,21 @@ def load_state(model_path):
 
     return state_dict
 
+def load_state_(model_path):
+    # model = EfficientNet_b0(6, pretrained=False)
+    try:  # single GPU model_file  
+        state_dict = torch.load(model_path)['model_state_dict']
+        # model.load_state_dict(state_dict, strict=True)
+    except:  # multi GPU model_file
+        state_dict = torch.load(model_path)['model_state_dict']
+        state_dict = {k[7:] if k.startswith('module.') else k: state_dict[k] for k in state_dict.keys()}
+
+    return state_dict
+
 def inference(model, states, test_loader, device):
     model.to(device)
     probs = []
-    for i, (images) in enumerate(test_loader):
+    for images in tqdm(test_loader):
         images = images.to(device)
         avg_preds = []
         for state in states:
@@ -82,27 +93,48 @@ def main(config):
                              shuffle=False, 
                              num_workers=config.num_workers, 
                              pin_memory=True)
+    ##############    MASK     ##########################
+    # model = EfficientNet_b0(3, pretrained=False)
+    # states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_mask.pth') 
+    #                      for fold in range(4)]
+                         
+    # predictions = inference(model, states, test_loader, device)
+    # submission['mask'] = predictions.argmax(1)
+    # with open(os.path.join(config.OUTPUT_DIR, 'mask'), 'wb') as f:
+    #     pickle.dump(predictions, f)
     ############## AGE / GENDER #########################
     model = EfficientNet_b0(6, pretrained=False)
-    states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef0_ns.pth') 
+    states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef_final.pth') 
                          for fold in config.trn_fold]
+    predictions_1 = inference(model, states, test_loader, device)
+    with open(os.path.join(config.OUTPUT_DIR, 'final'), 'wb') as f:
+        pickle.dump(predictions_1, f)
+    ###### b0 ######
+    # model = EfficientNet_b0(6, pretrained=False)
+    # states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef0_ns.pth') 
+    #                      for fold in config.trn_fold]
 
-    predictions = inference(model, states, test_loader, device)
-    submission['gender_age'] = predictions.argmax(1)
-
-    model = EfficientNet_mask(3, 512)
-    states = [load_state(f'/opt/ml/code/checkpoint/EfficientNet_{num}') 
-                         for num in config.ensemble]
-                         
-    predictions = inference(model, states, test_loader, device)
-    submission['mask'] = predictions.argmax(1)
+    # predictions_0 = inference(model, states, test_loader, device)
+    # with open(os.path.join(config.OUTPUT_DIR, '0'), 'wb') as f:
+    #     pickle.dump(predictions_0, f)
     
-    def labeling(gender_age, mask):
-        return mask * 6 + gender_age
-    submission['label'] = submission.apply(lambda x: labeling(x['gender_age'], x['mask']), axis=1)
+    # ###### b4 ######
+    # model = EfficientNet_b4(6, pretrained=False)
+    # states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef4_ns.pth') 
+    #                      for fold in config.trn_fold]
 
-    submission[['image_id', 'label']].to_csv(config.OUTPUT_DIR+'submission.csv', index=False)
-    submission.head()
+    # predictions_4 = inference(model, states, test_loader, device)
+    # with open(os.path.join(config.OUTPUT_DIR, '4'), 'wb') as f:
+    #     pickle.dump(predictions_4, f)
+    # submission['gender_age'] = (predictions_0*0.2+predictions_1*0.3+predictions_4*0.5).argmax(1)
+
+    
+    # def labeling(gender_age, mask):
+    #     return mask * 6 + gender_age
+    # submission['ans'] = submission.apply(lambda x: labeling(x['gender_age'], x['mask']), axis=1)
+
+    # submission[['ImageID', 'ans']].to_csv(os.path.join(config.TEST_PATH, 'submission.csv'), index=False)
+    # submission.head()
 
 #%%
 if __name__ == '__main__':

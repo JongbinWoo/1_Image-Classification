@@ -146,7 +146,7 @@ class loss_kd_regularization(nn.Module):
     
     def forward(self, logits, soft_targets):
         loss_TCE = self.taylor_CE(logits, soft_targets)
-        loss_soft_reg = nn.KLDivLoss(reduction='batchmean')(F.log_softmax(logits/self.T, dim=1), F.softmax(soft_targets, dim=1))
+        loss_soft_reg = nn.KLDivLoss(reduction='batchmean')(F.log_softmax(logits/self.T, dim=1), F.softmax(soft_targets/self.T, dim=1))
 
         KD_loss = (1. - self.alpha)*loss_TCE + self.alpha*loss_soft_reg
         return KD_loss

@@ -5,7 +5,7 @@ import argparse
 from itertools import islice
 import pandas as pd
 #data
-from dataloader.dataset import MaskDataset, balance_data , get_augmentation
+from dataloader.dataset import MaskDataset_, MaskDataset__, balance_data , get_augmentation
 from sklearn.model_selection import StratifiedKFold, KFold
 from torch.utils.data import DataLoader
 
@@ -17,11 +17,10 @@ from model.model import DenseNet, EfficientNet_b0, ResNext
 from model.loss import Cumbo_Loss, CustomLoss, F1Loss, TaylorCrossEntropyLoss, loss_kd_regularization
 from model.optimizer import get_optimizer, get_adamp
 #trianer
-from trainer.trainer import Trainer
+from trainer.trainer_mask import Trainer
 
 from utils import seed_everything
 
-from madgrad import MADGRAD
 
 
 # %%
@@ -46,8 +45,8 @@ def main(config):
         # Oversampling https://www.kaggle.com/tanlikesmath/diabetic-retinopathy-with-resnet50-oversampling/notebook
         train_df = balance_data(train_df.pivot_table(index='gender_age_class', aggfunc=len).max().max(),train_df)
         valid_df = valid_df.reset_index(drop=True)
-        train_dataset = MaskDataset(train_df, config.PATH.ROOT, transforms['train'])
-        valid_dataset = MaskDataset(valid_df, config.PATH.ROOT, transforms['valid'])
+        train_dataset = MaskDataset_(train_df, config.PATH.ROOT, transforms['train'])
+        valid_dataset = MaskDataset__(valid_df, config.PATH.ROOT, transforms['valid'])
 
         train_loader = DataLoader(train_dataset,
                                   batch_size=config.TRAIN.BATCH_SIZE,
@@ -86,11 +85,11 @@ def main(config):
     f1s = []
     for fold, dataloader in enumerate(dataloaders):
         print(f'\n----------- FOLD {fold} TRAINING START --------------\n')
-        model = EfficientNet_b0(6, True, config.MODEL.FREEZE)
+        model = EfficientNet_b0(3, True, config.MODEL.FREEZE)
         # model = DenseNet(6, config.MODEL.HIDDEN, config.MODEL.FREEZE)
         # model = ResNext(6, config.MODEL.FREEZE)
-        optimizer = MADGRAD(model.parameters(), lr=1e-4)
-        # optimizer = get_adamp(lr=config.TRAIN.BASE_LR, model=model, weight_decay=1e-6)
+
+        optimizer = get_adamp(lr=config.TRAIN.BASE_LR, model=model, weight_decay=1e-6)
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0= 10, T_mult= 1, eta_min= 1e-6, last_epoch=-1)
         model_set = {
             'model': model,
