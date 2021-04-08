@@ -1,7 +1,5 @@
 from matplotlib import pyplot as plt
-import matplotlib
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn.functional as F
 import random 
@@ -9,29 +7,7 @@ import os
 
 import torchvision 
 
-class MetricTracker:
-    def __init__(self, *keys, writer=None):
-        self.writer = writer
-        self._data = pd.DataFrame(index=keys, columns=['total', 'counts', 'average'])
-        self.reset()
-
-    def reset(self):
-        for col in self._data.columns:
-            self._data[col].values[:] = 0
-
-    def update(self, key, value, n=1):
-        if self.writer is not None:
-            self.writer.add_scalar(key, value)
-        self._data.total[key] += value * n
-        self._data.counts[key] += n
-        self._data.average[key] = self._data.total[key] / self._data.counts[key]
-
-    def avg(self, key):
-        return self._data.average[key]
-
-    def result(self):
-        return dict(self._data.average)
-
+#### For Tensorboard Visualization #####
 def matplotlib_imshow(img, one_channel=False):
     if one_channel:
         img = img.mean(dim=0)
@@ -58,6 +34,8 @@ def plot_classes_preds(net, images, labels):
                      color=("green" if preds[idx]==labels[idx].item() else "red"))
     return fig
 
+#############################################
+
 def seed_everything(seed):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -76,6 +54,13 @@ def find_nonzero_index(inputs):
     return torch.nonzero(inputs, as_tuple=True)[0].tolist()
 
 def convert_target(num_class, targets, ages):
+    """
+    나이를 고려해서 label을 확률적으로 바꿔주는 함수
+    ex) 59세남자([4]) -> one hot([0, 0, 0, 0, 1, 0]) -> result([0, 0, 0, 0, 0.45, 0.55])
+    
+    targets : (B)
+    
+    """
     targets = F.one_hot(targets, num_classes=num_class).float()
     ages_index_1 = find_nonzero_index(torch.logical_and((50 < ages), (ages < 60)))
     for idx in ages_index_1:
@@ -83,7 +68,7 @@ def convert_target(num_class, targets, ages):
 
         targets[idx][cls_idx] -= (ages[idx]-50)*0.05
         targets[idx][cls_idx+1] += (ages[idx]-50)*0.05
-    # print(targets)
+    
     ages_index_2 = find_nonzero_index((ages == 60))
     for idx in ages_index_2:
         cls_idx = find_nonzero_index(targets[idx])[0]

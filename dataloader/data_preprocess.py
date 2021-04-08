@@ -4,16 +4,16 @@ import pandas as pd
 import os
 from glob import glob
 from sklearn.model_selection import train_test_split, StratifiedKFold
-train_df = pd.read_csv('/opt/ml/input/data/train/train.csv')
 
 #%%
 # Load data
+train_df = pd.read_csv('/opt/ml/input/data/train/train.csv')
 train_df = train_df[['id', 'gender', 'age', 'path']]
 # %%
 # Set classes of each image
-# train_df.gender.replace(
-#     {'male': 0, 'female':1}, inplace=True
-# )
+train_df.gender.replace(
+    {'male': 0, 'female':1}, inplace=True
+)
 
 def _get_age_class(age):
     if age >= 60:
@@ -25,7 +25,6 @@ def _get_age_class(age):
 
 train_df['age_class'] = train_df.apply(lambda x: _get_age_class(x['age']), axis=1)
 
-#%%
 def concat_gender_age(gender, age):
     return gender * 3 + age
 
@@ -34,8 +33,7 @@ train_df['gender_age_class'] = train_df.apply(lambda x: concat_gender_age(x['gen
 
 train_df.to_csv('/opt/ml/input/data/train/train.csv')
 
-folder_names = train_df.path.values
-data_root = '/opt/ml/input/data/train/images'
+
 # %%
 # Data Preprocessing
 
@@ -49,6 +47,8 @@ def check_num_files(root, folder_names):
         if len(img_list)  != 7:
             print(img_list)
 # %%
+folder_names = train_df.path.values
+data_root = '/opt/ml/input/data/train/images'
 check_num_files(data_root, folder_names)
 #%%
 from PIL import Image

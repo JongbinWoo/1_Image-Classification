@@ -83,38 +83,6 @@ class EfficientNet_b4(nn.Module):
         x = self.fc(x)
         return x
 
-from efficientnet_pytorch import EfficientNet
-class EfficientNet_mask(nn.Module):
-    def __init__(self, num_classes, hidden_dim, freeze=True):
-        super(EfficientNet_mask, self).__init__()
-        self.model = EfficientNet.from_pretrained('efficientnet-b0')
-        # set_parameter_requires_grad(self.model, True)
-        # Three Classifiers
-        self.hidden_dim = hidden_dim
-        self.dropout = nn.Dropout(p=0.5)
-        self.relu = nn.ReLU()
-        self.fc = nn.Sequential(
-            nn.Linear(1280, self.hidden_dim),
-            self.relu,
-            self.dropout,
-            nn.Linear(self.hidden_dim, num_classes))
-        
-        
-            
-        
-        # initialize all fc layers to xavier
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_normal_(m.weight, gain = 1)
-                
-    def forward(self, x):
-        x = self.model.extract_features(x)
-        x = F.adaptive_avg_pool2d(x, (1, 1))
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
-
-
 # %%
 class ResNext(nn.Module):
     def __init__(self, num_classes, freeze=False):

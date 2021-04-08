@@ -3,19 +3,15 @@ import os
 from albumentations.augmentations.functional import iso_noise
 from albumentations.augmentations.transforms import ISONoise
 import numpy as np
-import pandas as pd
 import cv2
 import random
-import matplotlib.pyplot as plt
 from glob import glob
-import torch
 from torch.utils.data import Dataset
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-import torch.nn.functional as F
-# %%
 #%%
 class MaskDataset(Dataset):
+    # GenderAge Network Train을 위한 class
     def __init__(self,
                  df, 
                  root_dir='/opt/ml/input/data/train/image',
@@ -31,8 +27,6 @@ class MaskDataset(Dataset):
         folder_path = self.info_df.loc[folder_idx].path
         folder_path = os.path.join(self.root_dir, folder_path)
         
-        # img_path = os.path.join(folder_path, 'normal.jpg')
-
         img_list = glob(os.path.join(folder_path, '*.jpg'))
         img_path = img_list[img_idx]
         
@@ -52,12 +46,13 @@ class MaskDataset(Dataset):
         idx_data =  self.info_df.loc[idx]
         return idx_data.gender_age_class, idx_data.age
      
-class MaskDataset__(Dataset):
+class MaskDataset_Validation(Dataset):
+    # Mask Network validation을 위한 class
     def __init__(self,
                  df, 
                  root_dir='/opt/ml/input/data/train/image',
                  transform=ToTensorV2):
-        super(MaskDataset__, self).__init__()
+        super(MaskDataset_Validation, self).__init__()
         self.root_dir = root_dir
         self.info_df = df
         self.transform = transform
@@ -68,20 +63,12 @@ class MaskDataset__(Dataset):
         folder_path = self.info_df.loc[folder_idx].path
         folder_path = os.path.join(self.root_dir, folder_path)
         
-        # img_path = os.path.join(folder_path, 'normal.jpg')
-
         mask_list = glob(os.path.join(folder_path, 'mask*.jpg'))
-        # mask_path = random.choice(mask_list)
-        # print(f'mask_path: {mask_path}')
         normal_path = os.path.join(folder_path, 'normal.jpg')
-        # print(f'normal_path: {normal_path}')
         incorrect_path = os.path.join(folder_path, 'incorrect_mask.jpg')
-        # print(f'incorrect_path: {incorrect_path}')
 
         img_list = [*mask_list, incorrect_path, normal_path]
-        # print(img_list)
         img_path = img_list[img_idx]
-        # print(f'img_path: {img_path}')
         if 'normal' in img_path: 
             mask = 2
         elif 'incorrect_mask' in img_path: 
@@ -100,12 +87,13 @@ class MaskDataset__(Dataset):
     def __len__(self):
         return len(self.info_df) * 7  
 
-class MaskDataset_(Dataset):
+class MaskDataset_Train(Dataset):
+    # Mask Network Train을 위한 class
     def __init__(self,
                  df, 
                  root_dir='/opt/ml/input/data/train/image',
                  transform=ToTensorV2):
-        super(MaskDataset_, self).__init__()
+        super(MaskDataset_Train, self).__init__()
         self.root_dir = root_dir
         self.info_df = df
         self.transform = transform
@@ -116,20 +104,13 @@ class MaskDataset_(Dataset):
         folder_path = self.info_df.loc[folder_idx].path
         folder_path = os.path.join(self.root_dir, folder_path)
         
-        # img_path = os.path.join(folder_path, 'normal.jpg')
-
         mask_list = glob(os.path.join(folder_path, 'mask*.jpg'))
         mask_path = random.choice(mask_list)
-        # print(f'mask_path: {mask_path}')
         normal_path = os.path.join(folder_path, 'normal.jpg')
-        # print(f'normal_path: {normal_path}')
         incorrect_path = os.path.join(folder_path, 'incorrect_mask.jpg')
-        # print(f'incorrect_path: {incorrect_path}')
 
         img_list = [mask_path, incorrect_path, normal_path]
-        # print(img_list)
         img_path = img_list[img_idx]
-        # print(f'img_path: {img_path}')
         if 'normal' in img_path: 
             mask = 2
         elif 'incorrect_mask' in img_path: 
@@ -177,31 +158,24 @@ def get_augmentation(config):
 
     return transforms
 
-
 #%%
 def generate_cutmix_image(image_batch, image_batch_labels):
     """ Generate a CutMix augmented image from a batch 
+    이미지를 세로로 반 잘라서 붙여준다.
     Args:
         - image_batch: a batch of input images
         - image_batch_labels: labels corresponding to the image batch
-        - beta: a parameter of Beta distribution.
     Returns:
         - CutMix image batch, updated labels
     """
     # generate mixed sample
-    lam = 0.5 #np.random.beta(beta, beta)
+    lam = 0.5
     
     rand_index = np.random.permutation(len(image_batch))
     target_a = image_batch_labels
     target_b = image_batch_labels[rand_index]
-    # bbx1, bby1, bbx2, bby2 = rand_bbox(image_batch[0].shape, lam)
-    # image_batch_updated = image_batch.copy()
     image_batch_updated = image_batch.clone().detach()
-    # image_batch_updated = torch.tensor(image_batch)
     image_batch_updated[:, :, :, :128] = image_batch[rand_index, :, :, :128]
-    
-    # adjust lambda to exactly match pixel ratio
-    # lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (image_batch.shape[1] * image_batch.shape[2]))
     label = target_a * lam + target_b * (1. - lam)
     
     return image_batch_updated, label

@@ -11,18 +11,14 @@ class ConfigTree:
         self.DATASET = AttributeDict()
         self.TRAIN = AttributeDict()
         self.MODEL = AttributeDict()
-
-        self.KD = AttributeDict()
         
 def get_config():
     config = ConfigTree()
     config.SYSTEM.DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     
     config.PATH.SAVEDIR = '/opt/ml/1_Image-Classification/checkpoint'
-    # config.PATH.CHECKPOINT = args.r
     config.PATH.ROOT = '/opt/ml/input/data/train/images'
-    config.PATH.TEST_1 = '/opt/ml/code/checkpoint/DenseNet_5'
-    
+    config.PATH.TEST_1 = '/opt/ml/code/checkpoint/DenseNet_5'  
 
     config.DATASET.NUM_CLASSES = [2, 3, 3]
 
@@ -45,9 +41,7 @@ def get_config():
     config.MODEL.PRETRAINED = True
     config.MODEL.FREEZE = False
     config.MODEL.OPTIM = 'Adam'
-    config.MODEL.HIDDEN = 512
-    
-    
+    config.MODEL.HIDDEN = 512   
 
     return config
 

@@ -1,12 +1,8 @@
 #%%
-from random import seed
-import torch
-import argparse
-from itertools import islice
 import pandas as pd
 #data
 from dataloader.dataset import MaskDataset, balance_data , get_augmentation
-from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
 
 #config
@@ -16,12 +12,14 @@ from config import get_config
 from model.model import DenseNet, EfficientNet_b0, ResNext
 from model.loss import Cumbo_Loss, CustomLoss, F1Loss, TaylorCrossEntropyLoss, loss_kd_regularization
 from model.optimizer import get_optimizer, get_adamp
+from madgrad import MADGRAD
+import torch.optim as optim
+
 #trianer
 from trainer.trainer import Trainer
 
 from utils import seed_everything
 
-from madgrad import MADGRAD
 
 
 # %%
@@ -29,21 +27,21 @@ def main(config):
     
     transforms = get_augmentation(config)
     
-       
+    # gender_age_class 의 분포를 고려해서 fold를 나눠준다
     df = pd.read_csv('/opt/ml/input/data/train/train.csv')
     skf = StratifiedKFold(n_splits=config.TRAIN.KFOLD, shuffle=True, random_state=42)
-    # kfold = KFold(n_splits=config.TRAIN.KFOLD, shuffle=True, random_state=42)
-    # for fold, (_, val_) in enumerate(kfold.split(X=df, y=df.gender_age_class)):
     for fold, (_, val_) in enumerate(skf.split(X=df, y=df.gender_age_class)):
         df.loc[val_, 'kfold'] = int(fold)
     df['kfold'] = df['kfold'].astype(int)
 
+    # 각 fold에 대해 dataset&dataloader를 만들고 list에 저장해둔다.
     dataloaders = []
     for fold in range(config.TRAIN.KFOLD):
         train_df = df[df.kfold != fold]
         valid_df = df[df.kfold == fold]
 
-        # Oversampling https://www.kaggle.com/tanlikesmath/diabetic-retinopathy-with-resnet50-oversampling/notebook
+        # Oversampling
+        # https://www.kaggle.com/tanlikesmath/diabetic-retinopathy-with-resnet50-oversampling/notebook
         train_df = balance_data(train_df.pivot_table(index='gender_age_class', aggfunc=len).max().max(),train_df)
         valid_df = valid_df.reset_index(drop=True)
         train_dataset = MaskDataset(train_df, config.PATH.ROOT, transforms['train'])
@@ -61,16 +59,7 @@ def main(config):
                                   shuffle=False)
         dataloaders.append((train_loader, valid_loader))
 
-    # MODEL
-    # model = DenseNet(6, config.MODEL.HIDDEN, config.MODEL.FREEZE)
-    # model = ResNext(6, config.MODEL.FREEZE)
-
-    # gender_age_optimizer = get_optimizer(optimizer_name = config.MODEL.OPTIM, 
-    #                           lr=config.TRAIN.BASE_LR, 
-    #                           model=gender_age_model)
-    import torch.optim as optim
-
-
+    # loss function 선택
     loss_collection = {
         'TaylorCE': TaylorCrossEntropyLoss(),
         'CE': CustomLoss(config.TRAIN.T),
@@ -81,9 +70,7 @@ def main(config):
     loss = loss_collection[config.TRAIN.LOSS]
     print(f'Loss : {config.TRAIN.LOSS}')
 
-    
-    
-    f1s = []
+    f1_scores = []
     for fold, dataloader in enumerate(dataloaders):
         print(f'\n----------- FOLD {fold} TRAINING START --------------\n')
         model = EfficientNet_b0(6, True, config.MODEL.FREEZE)
@@ -103,15 +90,13 @@ def main(config):
         trainer = Trainer(model_set, config, train_loader, valid_loader, fold)
         best_f1 = trainer.train(config.TRAIN.EPOCH)
         print(f'\nFOLD F{fold}: {best_f1:.3f}\n')
-        f1s.append(best_f1)
+        f1_scores.append(best_f1)
     
-    print(f'MEAN F1 - {sum(f1s)/len(f1s)}')
+    print(f'MEAN F1 - {sum(f1_scores)/len(f1_scores)}')
 # %%
 if __name__ == '__main__':
-    
     config = get_config()
     seed_everything(42)
     
-
     main(config)
 

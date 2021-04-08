@@ -52,10 +52,7 @@ class Trainer:
         for batch_idx, (inputs, targets) in enumerate(tqdm(self.train_loader)):
             inputs = inputs.float().to(self.device)
             total += inputs.size(0)
-            # targets = [target.to(self.device) for target in targets]
-            # labels = targets[0]
             labels = targets.to(self.device)
-            # print(labels)
             label_smoothing= LabelSmoothing(3, 0.2)
             soft_targets = label_smoothing(inputs.size(0), labels)
             
@@ -65,10 +62,10 @@ class Trainer:
 
                 loss = self.criterion(mask, soft_targets)
             
-            self.scaler_1.scale(loss).backward()
-            self.scaler_1.step(self.optimizer)
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
 
-            self.scaler_1.update()
+            self.scaler.update()
 
             train_loss += loss.item()
 
@@ -76,7 +73,6 @@ class Trainer:
 
             correct += predicted.eq(labels).sum().item()
         # print(f'[TRAIN][AGE] Loss: {train_loss/(batch_idx+1):.3f} | Acc: {100.*correct/total:.3f}')
-        # # wandb.log({'train_acc': 100.*correct[1]/total, 'epoch': epoch})
         # self.writer.add_scalars('Loss/train', {'age': train_loss[0]/(batch_idx+1)}, epoch)
         # self.writer.add_scalars('Accuracy/train', {'age': 100.*correct[0]/total}, epoch)
 
@@ -92,13 +88,7 @@ class Trainer:
             for batch_idx, (inputs, targets) in enumerate(self.valid_loader):
                 inputs = inputs.to(self.device)
                 total += inputs.size(0)
-
-                # targets = [target.to(self.device) for target in targets]
-                # labels = targets[0]
-                # targets = convert_target(6, targets[0], targets[1])
                 labels = targets.to(self.device)
-                # targets = F.one_hot(labels, num_classes=3).float()
-
                 mask = self.model(inputs)
                 # loss = self.criterion(mask, targets)
                 
@@ -122,21 +112,14 @@ class Trainer:
 
             # grid = torchvision.utils.make_grid(inputs)
             # self.writer.add_image('images', grid, 0)
-# #create image object and log
-#                 img = wandb.Image(image, boxes = 
-#                                   {"predictions": 
-#                                    {"box_data": predicted_boxes, 
-#                                     "class_labels" : class_id_to_label},"ground_truth": {"box_data": target_boxes}})
-                
-# #                 wandb.log({"bounding_boxes": img})                
-#             # wandb.log({'val_acc': 100.*correct[1]/total, 'epoch': epoch})
+
 #             self.writer.add_scalars('Loss/val', {'age': val_loss[0]/(batch_idx+1)}, epoch)
 #             self.writer.add_scalars('Accuracy/val', {'age': 100.*correct[0]/total}, epoch)
 
 
     def train(self, epochs):
         seed_everything(42)
-        self.scaler_1 = GradScaler()
+        self.scaler = GradScaler()
         
         best_f1 = 0.0
         for epoch in range(epochs):
@@ -159,6 +142,4 @@ class Trainer:
         torch.cuda.empty_cache()
 
         return best_f1
-        # if epoch % self.config.TRAIN.PERIOD == 0:
-            # self._save_checkpoint(epoch, self.model, self.optimizer, name='DenseNet')
         

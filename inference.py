@@ -16,16 +16,11 @@ warnings.filterwarnings('ignore')
 class CFG:
     debug=False
     num_workers=5
-    model_name='F1_Fold' #0_ef0_ns.pth'
     size=512
     batch_size=128
     seed=2020
-    target_size=5
-    target_col='label'
     n_fold=5
     trn_fold=[0, 1, 2, 3, 4]
-    ensemble=[2,10]
-    inference=True
     OUTPUT_DIR = './'
     MODEL_DIR = '/opt/ml/1_Image-Classification/checkpoint'
     TEST_PATH = '/opt/ml/input/data/eval'
@@ -94,58 +89,34 @@ def main(config):
                              num_workers=config.num_workers, 
                              pin_memory=True)
     ##############    MASK     ##########################
-    # model = EfficientNet_b0(3, pretrained=False)
-    # states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_mask.pth') 
-    #                      for fold in range(4)]
+    model = EfficientNet_b0(3, pretrained=False)
+    states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_mask.pth') 
+                         for fold in range(4)]
                          
-    # predictions = inference(model, states, test_loader, device)
-    # submission['mask'] = predictions.argmax(1)
-    # with open(os.path.join(config.OUTPUT_DIR, 'mask'), 'wb') as f:
-    #     pickle.dump(predictions, f)
+    predictions = inference(model, states, test_loader, device)
+    submission['mask'] = predictions.argmax(1)
     ############## AGE / GENDER #########################
+    ##### b0 ######
     model = EfficientNet_b0(6, pretrained=False)
-    states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef_final.pth') 
+    states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef0_ns.pth') 
                          for fold in config.trn_fold]
-    predictions_1 = inference(model, states, test_loader, device)
-    with open(os.path.join(config.OUTPUT_DIR, 'final'), 'wb') as f:
-        pickle.dump(predictions_1, f)
-    ###### b0 ######
-    # model = EfficientNet_b0(6, pretrained=False)
-    # states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef0_ns.pth') 
-    #                      for fold in config.trn_fold]
-
-    # predictions_0 = inference(model, states, test_loader, device)
-    # with open(os.path.join(config.OUTPUT_DIR, '0'), 'wb') as f:
-    #     pickle.dump(predictions_0, f)
+    predictions_0 = inference(model, states, test_loader, device)
     
-    # ###### b4 ######
-    # model = EfficientNet_b4(6, pretrained=False)
-    # states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef4_ns.pth') 
-    #                      for fold in config.trn_fold]
+    ###### b4 ######
+    model = EfficientNet_b4(6, pretrained=False)
+    states = [load_state(f'/opt/ml/1_Image-Classification/checkpoint/F1_Fold{fold}_ef4_ns.pth') 
+                         for fold in config.trn_fold]
+    predictions_4 = inference(model, states, test_loader, device)
 
-    # predictions_4 = inference(model, states, test_loader, device)
-    # with open(os.path.join(config.OUTPUT_DIR, '4'), 'wb') as f:
-    #     pickle.dump(predictions_4, f)
-    # submission['gender_age'] = (predictions_0*0.2+predictions_1*0.3+predictions_4*0.5).argmax(1)
+    submission['gender_age'] = (predictions_0*0.3+predictions_4*0.7).argmax(1)
 
-    
-    # def labeling(gender_age, mask):
-    #     return mask * 6 + gender_age
-    # submission['ans'] = submission.apply(lambda x: labeling(x['gender_age'], x['mask']), axis=1)
+    def labeling(gender_age, mask):
+        return mask * 6 + gender_age
+    submission['ans'] = submission.apply(lambda x: labeling(x['gender_age'], x['mask']), axis=1)
 
-    # submission[['ImageID', 'ans']].to_csv(os.path.join(config.TEST_PATH, 'submission.csv'), index=False)
-    # submission.head()
+    submission[['ImageID', 'ans']].to_csv(os.path.join(config.TEST_PATH, 'submission.csv'), index=False)
 
 #%%
 if __name__ == '__main__':
     config = CFG
     main(config)
-# %%
-# pred = mask * 6 + gender_age
-# def concat_gender_age(gender, age):
-#     return gender * 3 + age
-
-# train_df['gender_age_class'] = train_df.apply(lambda x: concat_gender_age(x['gender'], x['age_class']), axis=1)
-
-
-# train_df.to_csv('/opt/ml/input/data/train/train.csv')

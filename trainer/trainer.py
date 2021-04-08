@@ -9,13 +9,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 import torchvision
-# import wandb
 from torch.utils.tensorboard import SummaryWriter
 from utils import seed_everything
 # from utils import plot_classes_preds
 from dataloader.dataset import generate_cutmix_image
+
 from torch.cuda.amp import GradScaler, autocast
-#
 from sklearn.metrics import f1_score
 
 class Trainer:
@@ -59,35 +58,29 @@ class Trainer:
             labels = targets[0]
             ages = targets[1]
 
+            
             label_smoothing= LabelSmoothing(6, 0.4)
             soft_targets_1 = label_smoothing(inputs.size(0), labels)
-            soft_targets_2 = convert_target(6, labels, ages)
+            soft_targets_2 = convert_target(6, labels, ages) 
             soft_targets = (soft_targets_1 + soft_targets_2) / 2
 
             if torch.rand(1) > 0.5:
-            # targets = F.one_hot(targets[0], num_classes=6).float()
                 inputs, soft_targets = generate_cutmix_image(inputs, soft_targets)
-            # show_images(inputs)
-            # print(targets)
+                # show_images(inputs)
             
             self.optimizer.zero_grad()
             with autocast():
                 gender_age = self.model(inputs)
-
                 loss = self.criterion(gender_age, soft_targets)
             
-            self.scaler_1.scale(loss).backward()
-            self.scaler_1.step(self.optimizer)
-
-            self.scaler_1.update()
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
 
             train_loss += loss.item()
-
             _, predicted = gender_age.max(1)
-
             correct += predicted.eq(labels).sum().item()
         # print(f'[TRAIN][AGE] Loss: {train_loss/(batch_idx+1):.3f} | Acc: {100.*correct/total:.3f}')
-        # # wandb.log({'train_acc': 100.*correct[1]/total, 'epoch': epoch})
         # self.writer.add_scalars('Loss/train', {'age': train_loss[0]/(batch_idx+1)}, epoch)
         # self.writer.add_scalars('Accuracy/train', {'age': 100.*correct[0]/total}, epoch)
 
@@ -132,21 +125,12 @@ class Trainer:
 
             # grid = torchvision.utils.make_grid(inputs)
             # self.writer.add_image('images', grid, 0)
-# #create image object and log
-#                 img = wandb.Image(image, boxes = 
-#                                   {"predictions": 
-#                                    {"box_data": predicted_boxes, 
-#                                     "class_labels" : class_id_to_label},"ground_truth": {"box_data": target_boxes}})
-                
-# #                 wandb.log({"bounding_boxes": img})                
-#             # wandb.log({'val_acc': 100.*correct[1]/total, 'epoch': epoch})
-#             self.writer.add_scalars('Loss/val', {'age': val_loss[0]/(batch_idx+1)}, epoch)
-#             self.writer.add_scalars('Accuracy/val', {'age': 100.*correct[0]/total}, epoch)
-
+            # self.writer.add_scalars('Loss/val', {'age': val_loss[0]/(batch_idx+1)}, epoch)
+            # self.writer.add_scalars('Accuracy/val', {'age': 100.*correct[0]/total}, epoch)
 
     def train(self, epochs):
         seed_everything(42)
-        self.scaler_1 = GradScaler()
+        self.scaler = GradScaler()
         
         best_f1 = 0.0
         for epoch in range(epochs):
@@ -171,6 +155,3 @@ class Trainer:
         torch.cuda.empty_cache()
 
         return best_f1
-        # if epoch % self.config.TRAIN.PERIOD == 0:
-            # self._save_checkpoint(epoch, self.model, self.optimizer, name='DenseNet')
-        
